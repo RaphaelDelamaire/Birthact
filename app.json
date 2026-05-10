@@ -27,7 +27,8 @@
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -48,8 +49,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "birthact"
+        "projectId": "1d8cf222-c306-46ee-a631-77b107ff7190"
       }
-    }
+    },
+    "owner": "raphaeldelamaire"
   }
 }
