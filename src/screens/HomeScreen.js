@@ -15,15 +15,14 @@ import * as DocumentPicker from 'expo-document-picker';
 import ContactCard from '../components/ContactCard';
 import { COLORS } from '../utils/constants';
 import { sortByName, sortByBirthday, isBirthdayToday } from '../utils/helpers';
-import { exportData, importData, loadContacts, loadFields } from '../utils/storage';
+import { exportData, importData } from '../utils/storage';
 
-export default function HomeScreen({ contacts, fields, onNavigate, onRefresh }) {
+export default function HomeScreen({ contacts, fields, onNavigate, onRefresh, t }) {
   const [search, setSearch] = useState('');
-  const [tab, setTab] = useState('contacts'); // contacts | birthdays
+  const [tab, setTab] = useState('contacts');
 
   const birthdaysToday = contacts.filter((c) => isBirthdayToday(c.birthday));
 
-  // Filter
   const searchLower = search.toLowerCase();
   const filtered = contacts.filter((c) => {
     if (!search) return true;
@@ -32,10 +31,8 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh }) 
     );
   });
 
-  // Sort
   const sorted = tab === 'birthdays' ? sortByBirthday(filtered) : sortByName(filtered);
 
-  // Export handler
   const handleExport = async () => {
     try {
       const json = await exportData();
@@ -47,14 +44,13 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh }) 
       });
       await Sharing.shareAsync(fileUri, {
         mimeType: 'application/json',
-        dialogTitle: 'Exporter contacts Birthact',
+        dialogTitle: t.exportTitle,
       });
     } catch (e) {
-      Alert.alert('Erreur', "Impossible d'exporter les données.");
+      Alert.alert(t.error, t.exportError);
     }
   };
 
-  // Import handler
   const handleImport = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -65,10 +61,10 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh }) 
       const fileUri = result.assets[0].uri;
       const content = await FileSystem.readAsStringAsync(fileUri);
       const count = await importData(content);
-      Alert.alert('Import réussi', `${count} nouveau(x) contact(s) importé(s).`);
+      Alert.alert(t.importSuccessTitle, t.importSuccess(count));
       onRefresh();
     } catch (e) {
-      Alert.alert('Erreur', 'Fichier invalide ou corrompu.');
+      Alert.alert(t.error, t.importError);
     }
   };
 
@@ -77,17 +73,17 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh }) 
       <Text style={styles.emptyIcon}>{tab === 'birthdays' ? '🎂' : '👋'}</Text>
       <Text style={styles.emptyTitle}>
         {tab === 'birthdays'
-          ? 'Aucun anniversaire enregistré'
+          ? t.noBirthdaysTitle
           : search
-          ? 'Aucun résultat'
-          : 'Aucun contact'}
+          ? t.noResultsTitle
+          : t.noContactsTitle}
       </Text>
       <Text style={styles.emptySub}>
         {tab === 'birthdays'
-          ? 'Ajoutez une date à vos contacts'
+          ? t.noBirthdaysSub
           : search
-          ? 'Essayez un autre terme'
-          : 'Appuyez sur + pour commencer'}
+          ? t.noResultsSub
+          : t.noContactsSub}
       </Text>
     </View>
   );
@@ -97,21 +93,27 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh }) 
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.title}>🎯 Birthact</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>🎯 {t.appName}</Text>
             <Text style={styles.subtitle}>
-              {contacts.length} contact{contacts.length !== 1 ? 's' : ''}
+              {t.contactCount(contacts.length)}
               {birthdaysToday.length > 0
-                ? ` · 🎂 ${birthdaysToday.length} anniv. aujourd'hui`
+                ? ` · 🎂 ${t.birthdayToday(birthdaysToday.length)}`
                 : ''}
             </Text>
           </View>
+          <TouchableOpacity
+            onPress={() => onNavigate('settings')}
+            style={styles.settingsBtn}
+          >
+            <Ionicons name="settings-outline" size={22} color="rgba(255,255,255,0.7)" />
+          </TouchableOpacity>
         </View>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={18} color="rgba(255,255,255,0.5)" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher un contact..."
+            placeholder={t.searchPlaceholder}
             placeholderTextColor="rgba(255,255,255,0.35)"
             value={search}
             onChangeText={setSearch}
@@ -128,15 +130,15 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh }) 
       <View style={styles.toolbar}>
         <TouchableOpacity style={styles.toolBtn} onPress={handleExport}>
           <Ionicons name="download-outline" size={16} color={COLORS.dark} />
-          <Text style={styles.toolText}>Exporter</Text>
+          <Text style={styles.toolText}>{t.export}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.toolBtn} onPress={handleImport}>
           <Ionicons name="push-outline" size={16} color={COLORS.dark} />
-          <Text style={styles.toolText}>Importer</Text>
+          <Text style={styles.toolText}>{t.import}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.toolBtn} onPress={() => onNavigate('fields')}>
-          <Ionicons name="settings-outline" size={16} color={COLORS.dark} />
-          <Text style={styles.toolText}>Champs</Text>
+          <Ionicons name="options-outline" size={16} color={COLORS.dark} />
+          <Text style={styles.toolText}>{t.fields}</Text>
         </TouchableOpacity>
       </View>
 
@@ -146,26 +148,18 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh }) 
           style={[styles.tab, tab === 'contacts' && styles.tabActive]}
           onPress={() => setTab('contacts')}
         >
-          <Ionicons
-            name="people"
-            size={16}
-            color={tab === 'contacts' ? COLORS.accent : COLORS.gray}
-          />
+          <Ionicons name="people" size={16} color={tab === 'contacts' ? COLORS.accent : COLORS.gray} />
           <Text style={[styles.tabLabel, tab === 'contacts' && styles.tabLabelActive]}>
-            Contacts
+            {t.contacts}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, tab === 'birthdays' && styles.tabActive]}
           onPress={() => setTab('birthdays')}
         >
-          <Ionicons
-            name="gift"
-            size={16}
-            color={tab === 'birthdays' ? COLORS.accent : COLORS.gray}
-          />
+          <Ionicons name="gift" size={16} color={tab === 'birthdays' ? COLORS.accent : COLORS.gray} />
           <Text style={[styles.tabLabel, tab === 'birthdays' && styles.tabLabelActive]}>
-            Anniversaires
+            {t.birthdays}
           </Text>
         </TouchableOpacity>
       </View>
@@ -175,7 +169,7 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh }) 
         data={sorted}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ContactCard contact={item} onPress={() => onNavigate('detail', item)} />
+          <ContactCard contact={item} onPress={() => onNavigate('detail', item)} t={t} />
         )}
         contentContainerStyle={styles.list}
         ListEmptyComponent={renderEmpty}
@@ -191,10 +185,7 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh }) 
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     backgroundColor: COLORS.dark,
     paddingTop: 54,
@@ -206,17 +197,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: COLORS.white,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 4,
-  },
+  title: { fontSize: 26, fontWeight: '800', color: COLORS.white, letterSpacing: -0.5 },
+  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
+  settingsBtn: { padding: 6, marginTop: 2 },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -229,17 +212,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  searchInput: {
-    flex: 1,
-    color: COLORS.white,
-    fontSize: 14,
-  },
-  toolbar: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingTop: 14,
-  },
+  searchInput: { flex: 1, color: COLORS.white, fontSize: 14 },
+  toolbar: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 14 },
   toolBtn: {
     flex: 1,
     flexDirection: 'row',
@@ -252,11 +226,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     backgroundColor: COLORS.card,
   },
-  toolText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.dark,
-  },
+  toolText: { fontSize: 12, fontWeight: '600', color: COLORS.dark },
   tabs: {
     flexDirection: 'row',
     marginHorizontal: 20,
@@ -275,39 +245,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 11,
   },
-  tabActive: {
-    backgroundColor: COLORS.accentLight,
-  },
-  tabLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.gray,
-  },
-  tabLabelActive: {
-    color: COLORS.accent,
-  },
-  list: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-  empty: {
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyIcon: {
-    fontSize: 42,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.dark,
-    marginBottom: 6,
-  },
-  emptySub: {
-    fontSize: 13,
-    color: COLORS.gray,
-  },
+  tabActive: { backgroundColor: COLORS.accentLight },
+  tabLabel: { fontSize: 13, fontWeight: '600', color: COLORS.gray },
+  tabLabelActive: { color: COLORS.accent },
+  list: { padding: 20, paddingBottom: 100 },
+  empty: { alignItems: 'center', paddingVertical: 60 },
+  emptyIcon: { fontSize: 42, marginBottom: 12 },
+  emptyTitle: { fontSize: 16, fontWeight: '600', color: COLORS.dark, marginBottom: 6 },
+  emptySub: { fontSize: 13, color: COLORS.gray },
   fab: {
     position: 'absolute',
     bottom: 24,

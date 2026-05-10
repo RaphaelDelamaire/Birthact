@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 /**
- * Request notification permissions
+ * Request notification permissions.
  */
 export async function requestPermissions() {
   const { status: existing } = await Notifications.getPermissionsAsync();
@@ -15,10 +15,9 @@ export async function requestPermissions() {
     return false;
   }
 
-  // Android notification channel
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('birthdays', {
-      name: 'Anniversaires',
+      name: 'Birthdays',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FFD700',
@@ -29,7 +28,7 @@ export async function requestPermissions() {
 }
 
 /**
- * Configure notification handler
+ * Configure the notification handler.
  */
 export function configureNotifications() {
   Notifications.setNotificationHandler({
@@ -42,11 +41,12 @@ export function configureNotifications() {
 }
 
 /**
- * Schedule birthday notifications for all contacts
- * Cancels existing ones and re-schedules
+ * Schedule birthday notifications for all contacts.
+ * Cancels existing ones and re-schedules.
+ * @param {Array} contacts
+ * @param {object} t - translation object (must have birthdayNotifTitle, birthdayNotifBody)
  */
-export async function scheduleBirthdayNotifications(contacts) {
-  // Cancel all existing scheduled notifications
+export async function scheduleBirthdayNotifications(contacts, t) {
   await Notifications.cancelAllScheduledNotificationsAsync();
 
   const today = new Date();
@@ -58,21 +58,17 @@ export async function scheduleBirthdayNotifications(contacts) {
     const bd = new Date(contact.birthday);
     const bdMonth = bd.getMonth();
     const bdDay = bd.getDate();
+    const name = `${contact.firstName || ''} ${contact.lastName || ''}`.trim();
 
-    // Schedule for this year and next year
     for (const year of [currentYear, currentYear + 1]) {
-      const notifDate = new Date(year, bdMonth, bdDay, 9, 0, 0); // 9 AM
-
-      // Skip if already past
+      const notifDate = new Date(year, bdMonth, bdDay, 9, 0, 0);
       if (notifDate <= today) continue;
-
-      const name = `${contact.firstName || ''} ${contact.lastName || ''}`.trim();
 
       try {
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: `🎂 Anniversaire de ${name} !`,
-            body: `N'oublie pas de souhaiter un joyeux anniversaire à ${name} aujourd'hui !`,
+            title: t ? t.birthdayNotifTitle(name) : `🎂 ${name}'s birthday!`,
+            body: t ? t.birthdayNotifBody(name) : `Don't forget to wish ${name} a happy birthday today!`,
             data: { contactId: contact.id },
             ...(Platform.OS === 'android' && { channelId: 'birthdays' }),
           },

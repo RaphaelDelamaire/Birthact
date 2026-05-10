@@ -1,156 +1,219 @@
 # 🎯 Birthact
 
-**Application de networking personnel** — Gère tes contacts pro, suis les anniversaires, et ne perds jamais le fil de ton réseau.
+A personal networking app for Android. Keep track of the people you meet, never miss a birthday, and maintain your professional network effortlessly.
 
-> ⚠️ **Transparence** : Le code source de cette application a été généré avec l'aide de **Claude (Anthropic)**, une intelligence artificielle. L'idée, le concept, le cahier des charges et les choix fonctionnels sont les miens — la rédaction du code a été assistée par IA. Ce projet représente ma capacité à concevoir un produit, définir des spécifications et piloter un outil d'IA pour concrétiser une vision.
-
----
-
-## Fonctionnalités
-
-- **Gestion de contacts** : nom, prénom, téléphone, email, métier, entreprise, lieu de rencontre, notes
-- **Photos de profil** : ajoute une photo depuis ta galerie (ex : screenshot LinkedIn) — sauvegardée dans les données et incluse dans l'export
-- **Champs personnalisés** : ajoute tes propres catégories (LinkedIn, hobby, relation...) qui s'appliquent à tous les contacts
-- **Notifications d'anniversaire** : reçois une notif à 9h le jour de l'anniversaire de chaque contact
-- **Recherche globale** : cherche sur n'importe quel champ
-- **Export / Import JSON** : sauvegarde et restaure tous tes contacts (photos incluses en base64)
-- **Actions rapides** : appeler, envoyer un SMS ou un email directement depuis la fiche contact
+> **Disclosure:** The source code for this application was generated with the assistance of **Claude (Anthropic)**, an AI assistant. The product concept, specifications, and functional decisions are my own — the code implementation was AI-assisted. This project reflects my ability to design a product, define requirements, and leverage AI tooling to bring a vision to life.
 
 ---
 
-## Installation sur ton téléphone Android
+## Features
 
-### Prérequis
+- **Contact management** — Store name, phone, email, job title, company, where you met, and free-form notes for every contact.
+- **Profile photos** — Add a photo from your gallery (e.g. a saved LinkedIn picture). Photos are stored as base64 and included in exports.
+- **Custom fields** — Add your own categories (LinkedIn URL, hobby, relationship context, etc.). Custom fields apply globally to all contacts; any field can be left blank.
+- **Birthday notifications** — Receive a native Android notification at 9 AM on each contact's birthday.
+- **Global search** — Search across all fields instantly.
+- **Export / Import (JSON)** — Back up and restore your entire contact database, including photos and custom fields. Duplicates are automatically filtered on import.
+- **Quick actions** — Call, text, or email a contact directly from their profile.
+- **Bilingual UI** — Switch between English and French from the in-app settings.
 
-Tu as besoin d'un **ordinateur** (Windows, Mac ou Linux) avec :
+---
 
-1. **Node.js** (version 18 ou plus) → https://nodejs.org/
-2. **Un compte Expo** (gratuit) → https://expo.dev/signup
+## Installation guide (Android)
 
-### Étape 1 — Installer les outils
+### Prerequisites
 
-Ouvre un terminal (ou PowerShell sur Windows) et tape :
+You will need a **computer** (Windows, macOS, or Linux) with the following installed:
+
+1. **Node.js v18 or later**
+   - Download from https://nodejs.org/ (LTS version recommended).
+   - After installation, verify by running in a terminal:
+     ```bash
+     node --version
+     ```
+     You should see `v18.x.x` or higher.
+
+2. **A free Expo account**
+   - Sign up at https://expo.dev/signup
+
+3. **Git** (optional but recommended)
+   - Download from https://git-scm.com/downloads
+
+---
+
+### Step 1 — Install the Expo build tools
+
+Open a terminal (PowerShell on Windows, Terminal on macOS/Linux):
 
 ```bash
-# Installer EAS CLI (le builder d'Expo)
 npm install -g eas-cli
+```
 
-# Se connecter à Expo
+Then log in to your Expo account:
+
+```bash
 eas login
 ```
 
-### Étape 2 — Préparer le projet
+> **Troubleshooting — `npm` not found:**
+> This means Node.js is not installed or not in your PATH. On Windows, close and reopen PowerShell after installing Node.js. On macOS/Linux, try opening a new terminal window.
+
+> **Troubleshooting — permission errors on macOS/Linux:**
+> Prefix the command with `sudo`:
+> ```bash
+> sudo npm install -g eas-cli
+> ```
+
+---
+
+### Step 2 — Set up the project
+
+Navigate to the project folder and install dependencies:
 
 ```bash
-# Va dans le dossier du projet (ajuste le chemin selon où tu l'as décompressé)
 cd birthact-app
-
-# Installer les dépendances
 npm install
 ```
 
-### Étape 3 — Builder l'APK
+> **Troubleshooting — `npm install` fails or hangs:**
+> 1. Delete the `node_modules` folder and `package-lock.json`, then run `npm install` again.
+> 2. Make sure you are inside the `birthact-app` directory (not a parent folder).
+> 3. Check your internet connection — npm needs to download packages.
+
+---
+
+### Step 3 — Build the APK
 
 ```bash
-# Lancer le build APK (se fait dans le cloud Expo, pas besoin d'Android Studio !)
 eas build -p android --profile preview
 ```
 
-> ⏳ Le premier build prend environ **10-15 minutes**. Expo te demande de confirmer la création du package Android — dis oui à tout.
+This command sends your project to the Expo cloud build service. **You do not need Android Studio.**
 
-### Étape 4 — Installer sur ton téléphone
+During the first build, EAS will ask a few questions:
+- **"Generate a new Android Keystore?"** → Yes
+- **"What would you like your Android application id to be?"** → Press Enter to accept the default (`com.birthact.app`)
 
-1. Une fois le build terminé, Expo te donne un **lien de téléchargement** de l'APK
-2. Ouvre ce lien **sur ton téléphone Android** (ou transfère le fichier .apk)
-3. Tape sur le fichier pour l'installer
-4. Si Android bloque l'installation → va dans **Paramètres > Sécurité** et active **"Sources inconnues"** ou **"Installer des apps inconnues"** pour ton navigateur
+The build typically takes **10–15 minutes**. Once complete, EAS will display a download URL for the `.apk` file.
 
-### Étape 5 — Profiter ! 🎉
+> **Troubleshooting — "Not logged in" error:**
+> Run `eas login` again and enter your Expo credentials.
 
-L'app est installée. Au premier lancement, elle te demandera la permission d'envoyer des notifications — accepte pour recevoir les rappels d'anniversaire.
+> **Troubleshooting — "EAS project not found" or "slug" error:**
+> Run `eas init` inside the project folder before building. This links the project to your Expo account.
 
----
-
-## Mode développement (optionnel)
-
-Si tu veux tester et modifier l'app en temps réel :
-
-```bash
-# Installer l'app Expo Go sur ton téléphone (Play Store)
-# Puis lancer le serveur de dev :
-npx expo start
-
-# Scanne le QR code avec Expo Go
-```
+> **Troubleshooting — Build fails with dependency errors:**
+> 1. Make sure you ran `npm install` successfully (no errors in the output).
+> 2. Try clearing the cache: `npx expo start --clear`, then cancel (Ctrl+C) and re-run the build.
+> 3. Check that your Node.js version is 18+.
 
 ---
 
-## Structure du projet
+### Step 4 — Install the APK on your phone
+
+1. Copy the download URL from the build output.
+2. Open the URL **on your Android phone** using Chrome or any browser.
+3. Download the `.apk` file.
+4. Tap the downloaded file to install it.
+
+> **Troubleshooting — "Install blocked" or "Unknown sources":**
+> Android blocks apps from outside the Play Store by default. To allow installation:
+> 1. Go to **Settings → Apps → Special app access → Install unknown apps** (path varies by device).
+> 2. Select your browser (e.g. Chrome).
+> 3. Enable **"Allow from this source"**.
+> 4. Try tapping the APK again.
+
+> **Troubleshooting — "App not installed" error:**
+> - Make sure you are not trying to install a debug build over a release build (or vice versa). Uninstall any previous version of Birthact first.
+> - Check that your phone has enough storage space.
+
+---
+
+### Step 5 — Grant permissions
+
+On first launch, Birthact will request permission to send notifications. **Accept this** to receive birthday reminders.
+
+---
+
+## Development mode (optional)
+
+To test and iterate on the app in real time without building an APK:
+
+1. Install **Expo Go** on your Android phone from the Play Store.
+2. Run the development server on your computer:
+   ```bash
+   npx expo start
+   ```
+3. Scan the QR code displayed in the terminal using Expo Go.
+
+> **Note:** Some features (such as notifications) may behave differently in Expo Go compared to a standalone APK build.
+
+---
+
+## Switching phones
+
+1. On your current phone, open Birthact → tap **Export** → share the JSON file to Google Drive, email, or any cloud storage.
+2. On your new phone, install the Birthact APK → tap **Import** → select the JSON file.
+3. All contacts, custom fields, and profile photos will be restored. Duplicates are automatically skipped.
+
+---
+
+## Project structure
 
 ```
 birthact-app/
-├── App.js                          # Point d'entrée, navigation
-├── app.json                        # Config Expo
-├── eas.json                        # Config de build
-├── package.json                    # Dépendances
+├── App.js                              # Entry point, navigation, state management
+├── app.json                            # Expo configuration
+├── eas.json                            # EAS Build profiles
+├── package.json                        # Dependencies
 ├── babel.config.js
-├── assets/                         # Icône et splash screen
-│   ├── icon.png
-│   ├── adaptive-icon.png
-│   ├── splash.png
-│   └── favicon.png
+├── assets/                             # App icon and splash screen
 └── src/
     ├── components/
-    │   └── ContactCard.js          # Carte de contact
+    │   └── ContactCard.js              # Contact list card component
     ├── screens/
-    │   ├── HomeScreen.js           # Écran principal (liste + recherche)
-    │   ├── ContactFormScreen.js    # Formulaire ajout/édition
-    │   ├── ContactDetailScreen.js  # Fiche contact détaillée
-    │   └── FieldManagerScreen.js   # Gestion des champs personnalisés
+    │   ├── HomeScreen.js               # Main screen (list, search, tabs)
+    │   ├── ContactFormScreen.js        # Add / edit contact form
+    │   ├── ContactDetailScreen.js      # Contact detail view
+    │   ├── FieldManagerScreen.js       # Custom field management
+    │   └── SettingsScreen.js           # Language settings
     └── utils/
-        ├── constants.js            # Couleurs, champs par défaut
-        ├── helpers.js              # Fonctions utilitaires (dates, tri...)
-        ├── notifications.js        # Notifications d'anniversaire
-        └── storage.js              # Stockage local (AsyncStorage)
+        ├── constants.js                # Colors, storage keys, default fields
+        ├── helpers.js                  # Date utilities, sorting, formatting
+        ├── i18n.js                     # English and French translations
+        ├── notifications.js            # Birthday notification scheduling
+        └── storage.js                  # AsyncStorage read/write operations
 ```
 
 ---
 
-## Format d'export
+## Export format
 
-Le fichier exporté est un JSON avec cette structure :
+The exported file is a standard JSON document:
 
 ```json
 {
   "app": "Birthact",
   "version": "1.0.0",
-  "exportedAt": "2026-05-07T12:00:00.000Z",
+  "exportedAt": "2026-05-10T12:00:00.000Z",
   "contacts": [...],
   "fields": [...]
 }
 ```
 
-Tu peux importer ce fichier sur un autre téléphone — les doublons sont automatiquement filtrés.
+Profile photos are embedded as base64 strings within each contact object, ensuring portability across devices.
 
 ---
 
-## Technologies
+## Technology stack
 
 - **React Native** + **Expo SDK 52**
-- **AsyncStorage** pour le stockage local
-- **Expo Notifications** pour les rappels d'anniversaire
-- **Expo Image Picker** pour les photos de profil
-- **Expo File System + Sharing** pour l'export
-- **Expo Document Picker** pour l'import
+- **AsyncStorage** — Local persistent storage
+- **Expo Notifications** — Scheduled birthday reminders
+- **Expo Image Picker** — Profile photo selection
+- **Expo File System + Sharing** — JSON export
+- **Expo Document Picker** — JSON import
 
 ---
 
-## Changer de téléphone sans rien perdre
-
-1. Sur l'ancien téléphone : ouvre Birthact → **Exporter** → envoie-toi le fichier JSON (Drive, email, WhatsApp...)
-2. Sur le nouveau téléphone : installe l'APK → **Importer** → sélectionne le fichier
-3. Tous tes contacts, champs personnalisés **et photos de profil** sont restaurés (les photos sont encodées en base64 dans le fichier JSON)
-
----
-
-Conçu par Raphaël · Code généré avec l'aide de Claude (Anthropic) · Birthact v1.0.0
+Designed by Raphaël · Code generated with the assistance of Claude (Anthropic) · Birthact v1.0.0

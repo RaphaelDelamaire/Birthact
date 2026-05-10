@@ -1,51 +1,53 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StatusBar, Alert, LogBox } from 'react-native';
+import { StatusBar, LogBox } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import HomeScreen from './src/screens/HomeScreen';
 import ContactFormScreen from './src/screens/ContactFormScreen';
 import ContactDetailScreen from './src/screens/ContactDetailScreen';
 import FieldManagerScreen from './src/screens/FieldManagerScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
-import { loadContacts, saveContacts, loadFields, saveFields } from './src/utils/storage';
+import { loadContacts, saveContacts, loadFields, saveFields, loadLanguage, saveLanguage } from './src/utils/storage';
 import { requestPermissions, configureNotifications, scheduleBirthdayNotifications } from './src/utils/notifications';
 import { DEFAULT_FIELDS } from './src/utils/constants';
+import { TRANSLATIONS } from './src/utils/i18n';
 
-// Suppress the timer warning from Expo
 LogBox.ignoreLogs(['Setting a timer']);
 
 export default function App() {
   const [contacts, setContacts] = useState([]);
   const [fields, setFields] = useState(DEFAULT_FIELDS);
+  const [language, setLanguage] = useState('en');
   const [screen, setScreen] = useState('home');
   const [selectedContact, setSelectedContact] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const t = TRANSLATIONS[language];
 
   // Initial load
   useEffect(() => {
     (async () => {
       configureNotifications();
-      const [c, f] = await Promise.all([loadContacts(), loadFields()]);
+      const [c, f, lang] = await Promise.all([loadContacts(), loadFields(), loadLanguage()]);
       setContacts(c);
       setFields(f);
+      setLanguage(lang);
       setLoading(false);
 
-      // Request notification permissions
       const granted = await requestPermissions();
       if (granted && c.length > 0) {
-        await scheduleBirthdayNotifications(c);
+        await scheduleBirthdayNotifications(c, TRANSLATIONS[lang]);
       }
     })();
   }, []);
 
-  // Refresh data from storage
   const refresh = useCallback(async () => {
     const [c, f] = await Promise.all([loadContacts(), loadFields()]);
     setContacts(c);
     setFields(f);
   }, []);
 
-  // Navigation handler
   const navigate = useCallback((target, data) => {
     switch (target) {
       case 'home':
@@ -67,57 +69,51 @@ export default function App() {
       case 'fields':
         setScreen('fields');
         break;
+      case 'settings':
+        setScreen('settings');
+        break;
       default:
         setScreen('home');
     }
   }, []);
 
-  // Save a new contact
-  const handleAddContact = useCallback(
-    async (form) => {
-      const updated = [...contacts, form];
-      setContacts(updated);
-      await saveContacts(updated);
-      await scheduleBirthdayNotifications(updated);
-      navigate('home');
-    },
-    [contacts, navigate]
-  );
+  const handleAddContact = useCallback(async (form) => {
+    const updated = [...contacts, form];
+    setContacts(updated);
+    await saveContacts(updated);
+    await scheduleBirthdayNotifications(updated, t);
+    navigate('home');
+  }, [contacts, navigate, t]);
 
-  // Update an existing contact
-  const handleEditContact = useCallback(
-    async (form) => {
-      const updated = contacts.map((c) => (c.id === form.id ? form : c));
-      setContacts(updated);
-      await saveContacts(updated);
-      await scheduleBirthdayNotifications(updated);
-      setSelectedContact(form);
-      setScreen('detail');
-    },
-    [contacts]
-  );
+  const handleEditContact = useCallback(async (form) => {
+    const updated = contacts.map((c) => (c.id === form.id ? form : c));
+    setContacts(updated);
+    await saveContacts(updated);
+    await scheduleBirthdayNotifications(updated, t);
+    setSelectedContact(form);
+    setScreen('detail');
+  }, [contacts, t]);
 
-  // Delete a contact
-  const handleDeleteContact = useCallback(
-    async (id) => {
-      const updated = contacts.filter((c) => c.id !== id);
-      setContacts(updated);
-      await saveContacts(updated);
-      await scheduleBirthdayNotifications(updated);
-      navigate('home');
-    },
-    [contacts, navigate]
-  );
+  const handleDeleteContact = useCallback(async (id) => {
+    const updated = contacts.filter((c) => c.id !== id);
+    setContacts(updated);
+    await saveContacts(updated);
+    await scheduleBirthdayNotifications(updated, t);
+    navigate('home');
+  }, [contacts, navigate, t]);
 
-  // Save fields
-  const handleSaveFields = useCallback(
-    async (newFields) => {
-      setFields(newFields);
-      await saveFields(newFields);
-      setScreen('home');
-    },
-    []
-  );
+  const handleSaveFields = useCallback(async (newFields) => {
+    setFields(newFields);
+    await saveFields(newFields);
+    setScreen('home');
+  }, []);
+
+  const handleChangeLanguage = useCallback(async (lang) => {
+    setLanguage(lang);
+    await saveLanguage(lang);
+    // Re-schedule notifications with updated language
+    await scheduleBirthdayNotifications(contacts, TRANSLATIONS[lang]);
+  }, [contacts]);
 
   if (loading) return null;
 
@@ -131,6 +127,7 @@ export default function App() {
           fields={fields}
           onNavigate={navigate}
           onRefresh={refresh}
+          t={t}
         />
       )}
 
@@ -139,6 +136,7 @@ export default function App() {
           fields={fields}
           onSave={handleAddContact}
           onCancel={() => navigate('home')}
+          t={t}
         />
       )}
 
@@ -149,6 +147,7 @@ export default function App() {
           onSave={handleEditContact}
           onDelete={handleDeleteContact}
           onCancel={() => navigate('detail', selectedContact)}
+          t={t}
         />
       )}
 
@@ -158,6 +157,7 @@ export default function App() {
           fields={fields}
           onEdit={() => navigate('edit', selectedContact)}
           onBack={() => navigate('home')}
+          t={t}
         />
       )}
 
@@ -166,6 +166,16 @@ export default function App() {
           fields={fields}
           onSave={handleSaveFields}
           onCancel={() => navigate('home')}
+          t={t}
+        />
+      )}
+
+      {screen === 'settings' && (
+        <SettingsScreen
+          language={language}
+          onChangeLanguage={handleChangeLanguage}
+          onBack={() => navigate('home')}
+          t={t}
         />
       )}
     </SafeAreaProvider>

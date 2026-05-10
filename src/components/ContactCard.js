@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../utils/constants';
 import { isBirthdayToday, isBirthdaySoon, daysUntilBirthday, getInitials } from '../utils/helpers';
 
-export default function ContactCard({ contact, onPress }) {
+export default function ContactCard({ contact, onPress, t }) {
   const isToday = isBirthdayToday(contact.birthday);
   const soon = !isToday && isBirthdaySoon(contact.birthday);
   const days = daysUntilBirthday(contact.birthday);
@@ -45,7 +45,7 @@ export default function ContactCard({ contact, onPress }) {
           <View style={styles.badgeRow}>
             <View style={styles.badgeToday}>
               <Ionicons name="gift" size={11} color={COLORS.dark} />
-              <Text style={styles.badgeText}>Anniversaire aujourd'hui !</Text>
+              <Text style={styles.badgeText}>{t.birthdayTodayBadge}</Text>
             </View>
           </View>
         )}
@@ -53,7 +53,7 @@ export default function ContactCard({ contact, onPress }) {
           <View style={styles.badgeRow}>
             <View style={styles.badgeSoon}>
               <Ionicons name="gift-outline" size={11} color={COLORS.dark} />
-              <Text style={styles.badgeText}>Dans {days} jour{days > 1 ? 's' : ''}</Text>
+              <Text style={styles.badgeText}>{t.birthdayInDays(days)}</Text>
             </View>
           </View>
         )}

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS, DEFAULT_FIELDS } from './constants';
 
 /**
- * Load contacts from storage
+ * Load contacts from storage.
  */
 export async function loadContacts() {
   try {
@@ -15,7 +15,7 @@ export async function loadContacts() {
 }
 
 /**
- * Save contacts to storage
+ * Save contacts to storage.
  */
 export async function saveContacts(contacts) {
   try {
@@ -26,7 +26,7 @@ export async function saveContacts(contacts) {
 }
 
 /**
- * Load custom fields from storage
+ * Load custom fields from storage.
  */
 export async function loadFields() {
   try {
@@ -39,7 +39,7 @@ export async function loadFields() {
 }
 
 /**
- * Save custom fields to storage
+ * Save custom fields to storage.
  */
 export async function saveFields(fields) {
   try {
@@ -50,7 +50,30 @@ export async function saveFields(fields) {
 }
 
 /**
- * Export all data as JSON string
+ * Load language preference. Defaults to 'en'.
+ */
+export async function loadLanguage() {
+  try {
+    const lang = await AsyncStorage.getItem(STORAGE_KEYS.language);
+    return lang || 'en';
+  } catch (e) {
+    return 'en';
+  }
+}
+
+/**
+ * Save language preference.
+ */
+export async function saveLanguage(lang) {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.language, lang);
+  } catch (e) {
+    console.error('Error saving language:', e);
+  }
+}
+
+/**
+ * Export all data as a JSON string.
  */
 export async function exportData() {
   const contacts = await loadContacts();
@@ -69,23 +92,21 @@ export async function exportData() {
 }
 
 /**
- * Import data from JSON string, merges without duplicates
- * Returns the count of imported contacts
+ * Import data from a JSON string. Merges contacts and fields
+ * without creating duplicates. Returns the number of new contacts added.
  */
 export async function importData(jsonString) {
   const data = JSON.parse(jsonString);
-  if (!data.contacts) throw new Error('Format invalide');
+  if (!data.contacts) throw new Error('Invalid format');
 
   const existingContacts = await loadContacts();
   const existingFields = await loadFields();
 
-  // Merge contacts
   const existingIds = new Set(existingContacts.map((c) => c.id));
   const newContacts = data.contacts.filter((c) => !existingIds.has(c.id));
   const mergedContacts = [...existingContacts, ...newContacts];
   await saveContacts(mergedContacts);
 
-  // Merge fields
   if (data.fields) {
     const existingFieldIds = new Set(existingFields.map((f) => f.id));
     const newFields = data.fields.filter((f) => !existingFieldIds.has(f.id));
