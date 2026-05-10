@@ -43,7 +43,8 @@
           "photosPermission": "Birthact uses photos to set contact profile pictures."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ],
     "extra": {
       "eas": {
