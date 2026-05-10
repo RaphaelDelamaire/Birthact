@@ -19,18 +19,36 @@ A personal networking app for Android. Keep track of the people you meet, never 
 
 ---
 
-## Installation guide (Android)
+## Quick install (pre-built APK)
+
+If you just want to try the app without building it yourself, download the latest APK here:
+
+➡️ **[Download Birthact APK](https://expo.dev/accounts/raphaeldelamaire/projects/birthact/builds/503d9206-dd28-41cb-bbf7-44adf638d314)**
+
+1. Open the link **on your Android phone** and tap the download button
+2. Tap the downloaded `.apk` file to install
+3. If Android blocks the install, see Step 6 in the build guide below
+
+---
+
+## Installation guide (build from source)
+
+This guide is written to avoid every known pitfall. **Follow the steps in order. Do not skip ahead.**
 
 ### Prerequisites
 
-You will need a **computer** (Windows, macOS, or Linux) with the following installed:
+Install on your **computer** (Windows, macOS, or Linux):
 
 1. **Node.js v18 or later** — https://nodejs.org/ (LTS version recommended)
-   Verify with `node --version` (should show `v18.x.x` or higher).
+   After installation, open a **new** terminal and verify:
+   ```bash
+   node --version
+   ```
+   You should see `v18.x.x` or higher. If you see "command not found", reopen your terminal — the PATH needs to refresh.
 
 2. **A free Expo account** — https://expo.dev/signup
 
-3. **Git** (optional but recommended) — https://git-scm.com/downloads
+3. **Git** — https://git-scm.com/downloads
 
 ---
 
@@ -41,96 +59,155 @@ npm install -g eas-cli
 eas login
 ```
 
-> **`npm` not found?** Node.js is not installed or not in your PATH. On Windows, close and reopen PowerShell after installing Node.js.
->
-> **Permission errors on macOS/Linux?** Prefix with `sudo`: `sudo npm install -g eas-cli`
+Enter your Expo credentials when prompted.
+
+> **Permission errors on macOS/Linux:** prefix with `sudo`:
+> ```bash
+> sudo npm install -g eas-cli
+> ```
 
 ---
 
-### Step 2 — Set up the project
+### Step 2 — Clone or download the project
+
+If using Git:
+```bash
+git clone <repository-url>
+cd Birthact
+```
+
+Otherwise, download the project and open a terminal inside the `Birthact` folder.
+
+---
+
+### Step 3 — Install dependencies the safe way
+
+**This is the most important step.** Manually editing version numbers in `package.json` causes most installation errors. Always let Expo choose the versions.
 
 ```bash
-cd Birthact
 npm install
 ```
 
-> **`npm install` errors with `ETARGET No matching version found`?**
-> This happens when a package version doesn't exist for your Expo SDK. Fix it with:
+If this succeeds with no errors, skip to Step 4.
+
+> **If you see `ETARGET No matching version found for ...`:**
+>
+> This means a package version listed in `package.json` doesn't exist in the npm registry. Fix it with:
+>
 > ```bash
 > npx expo install --check
 > ```
-> Then run `npm install` again. `npx expo install` automatically picks versions compatible with your SDK.
+>
+> This compares your `package.json` against the versions known to be compatible with your Expo SDK and offers to fix them automatically. Press `y` to accept the fixes.
+>
+> Then run `npm install` again.
+
+> **If `npm install` is missing a specific Expo package** (e.g. `expo-notifications`, `expo-asset`, `expo-font`):
+>
+> Add the missing packages using `npx expo install` — never `npm install`:
+>
+> ```bash
+> npx expo install expo-asset expo-constants expo-modules-core expo-font expo-status-bar expo-notifications expo-file-system expo-image-picker expo-sharing expo-document-picker @react-native-async-storage/async-storage react-native-safe-area-context @expo/vector-icons
+> ```
+>
+> `npx expo install` automatically picks the version compatible with your SDK. This is the recommended way to add any Expo package to a project.
 
 ---
 
-### Step 3 — Link the project to your Expo account
+### Step 4 — Link the project to your Expo account
+
+Open `app.json` and locate the `extra` block at the bottom:
+
+```json
+"extra": {
+  "eas": {
+    "projectId": "..."
+  }
+}
+```
+
+**Delete this entire `extra` block** (including the trailing comma above it if needed to keep valid JSON). Save the file.
+
+Then run:
 
 ```bash
 eas init
 ```
 
-This writes a unique `projectId` into `app.json`.
+EAS will create or link the project under your Expo account and **automatically write a real UUID** into `app.json`. The output should display something like:
 
-> **"Project already linked" but the build fails with "Invalid UUID appId"?**
-> The `projectId` is a placeholder, not a real UUID. Manually delete the entire `extra.eas` block from `app.json`, then run `eas init` again to let it generate a valid UUID.
+```
+✔ Project successfully linked (ID: <a-real-uuid-here>)
+```
+
+> **If `eas init` says "Project already linked":** the placeholder `projectId` was not deleted from `app.json`. Re-open `app.json`, remove the `extra` block, save, and run `eas init` again.
 
 ---
 
-### Step 4 — Build the APK
+### Step 5 — Build the APK
 
 ```bash
 eas build -p android --profile preview
 ```
 
-During the first build, EAS will ask:
-- **"Generate a new Android Keystore?"** → Yes
-- **Application id** → Press Enter to accept `com.birthact.app`
+During the first build, EAS asks:
+- **"Generate a new Android Keystore?"** → press Enter for **Yes**
+- **Application id** → press Enter to accept `com.birthact.app`
 
-The build takes **10–15 minutes**. Once complete, EAS displays a download URL for the `.apk` file.
+The build runs in the Expo cloud and takes **10–15 minutes**. You do not need Android Studio. Once complete, EAS displays a download URL for the `.apk` file.
 
----
-
-### Step 5 — Troubleshooting common build failures
-
-**Always use `npx expo install` to add packages.** Manual version pinning often causes incompatibilities with the Expo SDK.
-
-| Error in build logs | Fix |
-|---|---|
-| `Unable to resolve module expo-asset` | `npx expo install expo-asset` |
-| `Unable to resolve module expo-font` | `npx expo install expo-font` |
-| `Unable to resolve module <name>` | `npx expo install <name>` |
-| `No matching version found for <package>@<version>` | Remove that line from `package.json`, run `npx expo install <package>` |
-| `Bundle JavaScript build phase` (under 30s) | A JS module is missing or `package-lock.json` is out of sync. Run `npm install` and commit the lockfile |
-| `Invalid UUID appId` | Delete `extra.eas` from `app.json`, run `eas init` |
-| `Manifest merger failed` | Conflicting permissions in `app.json`; check for duplicates |
-
-After any fix, always:
-```bash
-git add .
-git commit -m "Fix build"
-git push
-eas build -p android --profile preview
-```
+> **If the build fails with `Invalid UUID appId`:** the `projectId` in `app.json` is a placeholder, not a real UUID. Repeat Step 4.
+>
+> **If the build fails during "Bundle JavaScript" in under 30 seconds:** a JS module is missing or `package-lock.json` is out of sync. Run:
+> ```bash
+> npx expo install --check
+> npm install
+> ```
+> Then retry the build.
 
 ---
 
 ### Step 6 — Install the APK on your phone
 
-1. Open the download URL from the build output **on your Android phone**
-2. Download and tap the `.apk` file
-3. If blocked: **Settings → Apps → Special app access → Install unknown apps** → enable for your browser
+1. Open the download URL from the build output **on your Android phone** in a browser
+2. Download the `.apk` file
+3. Tap the file to install
+
+> **If Android blocks the install with "For your security..." or "Unknown sources":**
+>
+> 1. **Settings → Apps → Special app access → Install unknown apps** (the menu path varies by manufacturer; on Samsung it may be **Settings → Biometrics and security → Install unknown apps**)
+> 2. Select the browser you used to download the APK (Chrome, Samsung Internet, etc.)
+> 3. Enable **Allow from this source**
+> 4. Tap the downloaded APK again
+
+> **If the install fails with "App not installed":** uninstall any previous version of Birthact, then retry.
 
 ---
 
 ### Step 7 — Grant permissions
 
-On first launch, Birthact requests permission to send notifications. **Accept** to receive birthday reminders.
+On first launch, Birthact requests permission to send notifications. **Accept** to receive birthday reminders. The app also requests gallery access the first time you add a profile photo.
+
+---
+
+## Updating the app after code changes
+
+After modifying any code, the workflow is:
+
+```bash
+git add .
+git commit -m "Description of your changes"
+git push
+eas build -p android --profile preview
+```
+
+You do not need to re-run `eas init` or modify `app.json` for subsequent builds.
 
 ---
 
 ## Diagnosing app crashes
 
-If the app crashes on launch or during use, here is how to find the cause:
+If the app crashes on launch or during use, here is how to find the cause.
 
 ### Method A — Development mode (recommended)
 
@@ -141,7 +218,7 @@ npx expo start
 ```
 
 1. Install **Expo Go** on your Android phone (Play Store)
-2. Scan the QR code from the terminal with Expo Go
+2. Scan the QR code from the terminal using Expo Go
 3. Errors display in red, on screen, with line numbers
 
 ### Method B — Android Logcat (for native crashes)
@@ -154,13 +231,19 @@ adb logcat *:E ReactNativeJS:V
 
 Relaunch the app and watch the terminal — crash stack traces appear in real time.
 
-To enable USB debugging:
+To enable USB debugging on your phone:
 - **Settings → About phone** → tap "Build number" 7 times to unlock Developer options
 - **Settings → Developer options** → enable **USB debugging**
 
-### Method C — Android crash reports
+### Method C — Android bug report
 
-**Settings → Apps → Birthact → Storage** → some devices expose a "Bug report" or "Crash info" section.
+If the app crashes silently and you cannot use the methods above:
+
+- **Settings → About phone → Software information** → tap **Build number** 7 times to enable Developer options
+- **Settings → Developer options → Bug report**
+- Select **Interactive report**, wait for it to generate, then share the ZIP file
+
+The bug report contains the exact crash stack trace inside the `dumpstate.txt` file, searchable for your app package name (`com.birthact.app`).
 
 ---
 
@@ -176,7 +259,8 @@ To enable USB debugging:
 
 ```
 Birthact/
-├── App.js                              # Entry point, navigation, state management
+├── index.js                            # Entry point — registers App as root component
+├── App.js                              # Main app component, navigation, state
 ├── app.json                            # Expo configuration
 ├── eas.json                            # EAS Build profiles
 ├── package.json                        # Dependencies
@@ -213,7 +297,7 @@ Birthact/
 }
 ```
 
-Profile photos are embedded as base64 strings within each contact object.
+Profile photos are embedded as base64 strings within each contact object, ensuring portability across devices.
 
 ---
 
@@ -225,6 +309,21 @@ Profile photos are embedded as base64 strings within each contact object.
 - **Expo Image Picker** — Profile photo selection
 - **Expo File System + Sharing** — JSON export
 - **Expo Document Picker** — JSON import
+
+---
+
+## Troubleshooting reference
+
+| Error | Cause | Fix |
+|---|---|---|
+| `ETARGET No matching version found` | Hardcoded version in `package.json` doesn't exist | `npx expo install --check` |
+| `Invalid UUID appId` | Placeholder `projectId` in `app.json` | Delete `extra` block in `app.json`, run `eas init` |
+| `Project already linked` | Old `projectId` blocking `eas init` | Delete `extra` block in `app.json`, run `eas init` |
+| `Failed to resolve plugin for module "expo-notifications"` | Package not in `node_modules` | `npm install`, then verify with `dir node_modules\expo-notifications` |
+| `Unable to resolve module <name>` | Missing package | `npx expo install <name>` |
+| `Bundle JavaScript` fails in under 30s | `package-lock.json` out of sync | `npm install` and commit the lockfile |
+| `"main" has not been registered` | Missing `index.js` with `registerRootComponent` | Ensure `main` in `package.json` is `index.js` |
+| App crashes immediately on launch | Native/JS error | Use the diagnostic methods above |
 
 ---
 
