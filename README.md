@@ -8,14 +8,14 @@ A personal networking app for Android. Keep track of the people you meet, never 
 
 ## Features
 
-- **Contact management** — Store name, phone, email, job title, company, where you met, and free-form notes for every contact.
-- **Profile photos** — Add a photo from your gallery (e.g. a saved LinkedIn picture). Photos are stored as base64 and included in exports.
-- **Custom fields** — Add your own categories (LinkedIn URL, hobby, relationship context, etc.). Custom fields apply globally to all contacts; any field can be left blank.
-- **Birthday notifications** — Receive a native Android notification at 9 AM on each contact's birthday.
-- **Global search** — Search across all fields instantly.
-- **Export / Import (JSON)** — Back up and restore your entire contact database, including photos and custom fields. Duplicates are automatically filtered on import.
-- **Quick actions** — Call, text, or email a contact directly from their profile.
-- **Bilingual UI** — Switch between English and French from the in-app settings.
+- **Contact management** — Name, phone, email, job title, company, where you met, free-form notes
+- **Profile photos** — Add a photo from your gallery (e.g. a saved LinkedIn picture). Photos are stored as base64 and included in exports
+- **Custom fields** — Add your own categories (LinkedIn URL, hobby, relationship context, etc.). Custom fields apply globally to all contacts; any field can be left blank
+- **Birthday notifications** — Receive a native Android notification at 9 AM on each contact's birthday
+- **Global search** — Search across all fields instantly
+- **Export / Import (JSON)** — Back up and restore your entire contact database, including photos and custom fields. Duplicates are automatically filtered on import
+- **Quick actions** — Call, text, or email a contact directly from their profile
+- **Bilingual UI** — Switch between English (default) and French from the in-app settings
 
 ---
 
@@ -25,143 +25,157 @@ A personal networking app for Android. Keep track of the people you meet, never 
 
 You will need a **computer** (Windows, macOS, or Linux) with the following installed:
 
-1. **Node.js v18 or later**
-   - Download from https://nodejs.org/ (LTS version recommended).
-   - After installation, verify by running in a terminal:
-     ```bash
-     node --version
-     ```
-     You should see `v18.x.x` or higher.
+1. **Node.js v18 or later** — https://nodejs.org/ (LTS version recommended)
+   Verify with `node --version` (should show `v18.x.x` or higher).
 
-2. **A free Expo account**
-   - Sign up at https://expo.dev/signup
+2. **A free Expo account** — https://expo.dev/signup
 
-3. **Git** (optional but recommended)
-   - Download from https://git-scm.com/downloads
+3. **Git** (optional but recommended) — https://git-scm.com/downloads
 
 ---
 
 ### Step 1 — Install the Expo build tools
 
-Open a terminal (PowerShell on Windows, Terminal on macOS/Linux):
-
 ```bash
 npm install -g eas-cli
-```
-
-Then log in to your Expo account:
-
-```bash
 eas login
 ```
 
-> **Troubleshooting — `npm` not found:**
-> This means Node.js is not installed or not in your PATH. On Windows, close and reopen PowerShell after installing Node.js. On macOS/Linux, try opening a new terminal window.
-
-> **Troubleshooting — permission errors on macOS/Linux:**
-> Prefix the command with `sudo`:
-> ```bash
-> sudo npm install -g eas-cli
-> ```
+> **`npm` not found?** Node.js is not installed or not in your PATH. On Windows, close and reopen PowerShell after installing Node.js.
+>
+> **Permission errors on macOS/Linux?** Prefix with `sudo`: `sudo npm install -g eas-cli`
 
 ---
 
 ### Step 2 — Set up the project
 
-Navigate to the project folder and install dependencies:
-
 ```bash
-cd birthact-app
+cd Birthact
 npm install
 ```
 
-> **Troubleshooting — `npm install` fails or hangs:**
-> 1. Delete the `node_modules` folder and `package-lock.json`, then run `npm install` again.
-> 2. Make sure you are inside the `birthact-app` directory (not a parent folder).
-> 3. Check your internet connection — npm needs to download packages.
+> **`npm install` errors with `ETARGET No matching version found`?**
+> This happens when a package version doesn't exist for your Expo SDK. Fix it with:
+> ```bash
+> npx expo install --check
+> ```
+> Then run `npm install` again. `npx expo install` automatically picks versions compatible with your SDK.
 
 ---
 
-### Step 3 — Build the APK
+### Step 3 — Link the project to your Expo account
+
+```bash
+eas init
+```
+
+This writes a unique `projectId` into `app.json`.
+
+> **"Project already linked" but the build fails with "Invalid UUID appId"?**
+> The `projectId` is a placeholder, not a real UUID. Manually delete the entire `extra.eas` block from `app.json`, then run `eas init` again to let it generate a valid UUID.
+
+---
+
+### Step 4 — Build the APK
 
 ```bash
 eas build -p android --profile preview
 ```
 
-This command sends your project to the Expo cloud build service. **You do not need Android Studio.**
-
-During the first build, EAS will ask a few questions:
+During the first build, EAS will ask:
 - **"Generate a new Android Keystore?"** → Yes
-- **"What would you like your Android application id to be?"** → Press Enter to accept the default (`com.birthact.app`)
+- **Application id** → Press Enter to accept `com.birthact.app`
 
-The build typically takes **10–15 minutes**. Once complete, EAS will display a download URL for the `.apk` file.
-
-> **Troubleshooting — "Not logged in" error:**
-> Run `eas login` again and enter your Expo credentials.
-
-> **Troubleshooting — "EAS project not found" or "slug" error:**
-> Run `eas init` inside the project folder before building. This links the project to your Expo account.
-
-> **Troubleshooting — Build fails with dependency errors:**
-> 1. Make sure you ran `npm install` successfully (no errors in the output).
-> 2. Try clearing the cache: `npx expo start --clear`, then cancel (Ctrl+C) and re-run the build.
-> 3. Check that your Node.js version is 18+.
+The build takes **10–15 minutes**. Once complete, EAS displays a download URL for the `.apk` file.
 
 ---
 
-### Step 4 — Install the APK on your phone
+### Step 5 — Troubleshooting common build failures
 
-1. Copy the download URL from the build output.
-2. Open the URL **on your Android phone** using Chrome or any browser.
-3. Download the `.apk` file.
-4. Tap the downloaded file to install it.
+**Always use `npx expo install` to add packages.** Manual version pinning often causes incompatibilities with the Expo SDK.
 
-> **Troubleshooting — "Install blocked" or "Unknown sources":**
-> Android blocks apps from outside the Play Store by default. To allow installation:
-> 1. Go to **Settings → Apps → Special app access → Install unknown apps** (path varies by device).
-> 2. Select your browser (e.g. Chrome).
-> 3. Enable **"Allow from this source"**.
-> 4. Try tapping the APK again.
+| Error in build logs | Fix |
+|---|---|
+| `Unable to resolve module expo-asset` | `npx expo install expo-asset` |
+| `Unable to resolve module expo-font` | `npx expo install expo-font` |
+| `Unable to resolve module <name>` | `npx expo install <name>` |
+| `No matching version found for <package>@<version>` | Remove that line from `package.json`, run `npx expo install <package>` |
+| `Bundle JavaScript build phase` (under 30s) | A JS module is missing or `package-lock.json` is out of sync. Run `npm install` and commit the lockfile |
+| `Invalid UUID appId` | Delete `extra.eas` from `app.json`, run `eas init` |
+| `Manifest merger failed` | Conflicting permissions in `app.json`; check for duplicates |
 
-> **Troubleshooting — "App not installed" error:**
-> - Make sure you are not trying to install a debug build over a release build (or vice versa). Uninstall any previous version of Birthact first.
-> - Check that your phone has enough storage space.
-
----
-
-### Step 5 — Grant permissions
-
-On first launch, Birthact will request permission to send notifications. **Accept this** to receive birthday reminders.
+After any fix, always:
+```bash
+git add .
+git commit -m "Fix build"
+git push
+eas build -p android --profile preview
+```
 
 ---
 
-## Development mode (optional)
+### Step 6 — Install the APK on your phone
 
-To test and iterate on the app in real time without building an APK:
+1. Open the download URL from the build output **on your Android phone**
+2. Download and tap the `.apk` file
+3. If blocked: **Settings → Apps → Special app access → Install unknown apps** → enable for your browser
 
-1. Install **Expo Go** on your Android phone from the Play Store.
-2. Run the development server on your computer:
-   ```bash
-   npx expo start
-   ```
-3. Scan the QR code displayed in the terminal using Expo Go.
+---
 
-> **Note:** Some features (such as notifications) may behave differently in Expo Go compared to a standalone APK build.
+### Step 7 — Grant permissions
+
+On first launch, Birthact requests permission to send notifications. **Accept** to receive birthday reminders.
+
+---
+
+## Diagnosing app crashes
+
+If the app crashes on launch or during use, here is how to find the cause:
+
+### Method A — Development mode (recommended)
+
+Run the app via Expo Go to see JavaScript errors with full stack traces:
+
+```bash
+npx expo start
+```
+
+1. Install **Expo Go** on your Android phone (Play Store)
+2. Scan the QR code from the terminal with Expo Go
+3. Errors display in red, on screen, with line numbers
+
+### Method B — Android Logcat (for native crashes)
+
+With your phone connected via USB and **USB debugging** enabled:
+
+```bash
+adb logcat *:E ReactNativeJS:V
+```
+
+Relaunch the app and watch the terminal — crash stack traces appear in real time.
+
+To enable USB debugging:
+- **Settings → About phone** → tap "Build number" 7 times to unlock Developer options
+- **Settings → Developer options** → enable **USB debugging**
+
+### Method C — Android crash reports
+
+**Settings → Apps → Birthact → Storage** → some devices expose a "Bug report" or "Crash info" section.
 
 ---
 
 ## Switching phones
 
-1. On your current phone, open Birthact → tap **Export** → share the JSON file to Google Drive, email, or any cloud storage.
-2. On your new phone, install the Birthact APK → tap **Import** → select the JSON file.
-3. All contacts, custom fields, and profile photos will be restored. Duplicates are automatically skipped.
+1. On your current phone: open Birthact → tap **Export** → share the JSON file (Google Drive, email, etc.)
+2. On your new phone: install the Birthact APK → tap **Import** → select the JSON file
+3. All contacts, custom fields, and profile photos are restored. Duplicates are automatically skipped
 
 ---
 
 ## Project structure
 
 ```
-birthact-app/
+Birthact/
 ├── App.js                              # Entry point, navigation, state management
 ├── app.json                            # Expo configuration
 ├── eas.json                            # EAS Build profiles
@@ -189,8 +203,6 @@ birthact-app/
 
 ## Export format
 
-The exported file is a standard JSON document:
-
 ```json
 {
   "app": "Birthact",
@@ -201,7 +213,7 @@ The exported file is a standard JSON document:
 }
 ```
 
-Profile photos are embedded as base64 strings within each contact object, ensuring portability across devices.
+Profile photos are embedded as base64 strings within each contact object.
 
 ---
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StatusBar, LogBox } from 'react-native';
+import { StatusBar, LogBox, View, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import HomeScreen from './src/screens/HomeScreen';
@@ -8,8 +8,19 @@ import ContactDetailScreen from './src/screens/ContactDetailScreen';
 import FieldManagerScreen from './src/screens/FieldManagerScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 
-import { loadContacts, saveContacts, loadFields, saveFields, loadLanguage, saveLanguage } from './src/utils/storage';
-import { requestPermissions, configureNotifications, scheduleBirthdayNotifications } from './src/utils/notifications';
+import {
+  loadContacts,
+  saveContacts,
+  loadFields,
+  saveFields,
+  loadLanguage,
+  saveLanguage,
+} from './src/utils/storage';
+import {
+  requestPermissions,
+  configureNotifications,
+  scheduleBirthdayNotifications,
+} from './src/utils/notifications';
 import { DEFAULT_FIELDS } from './src/utils/constants';
 import { TRANSLATIONS } from './src/utils/i18n';
 
@@ -22,30 +33,62 @@ export default function App() {
   const [screen, setScreen] = useState('home');
   const [selectedContact, setSelectedContact] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState(null);
 
-  const t = TRANSLATIONS[language];
+  const t = TRANSLATIONS[language] || TRANSLATIONS.en;
 
-  // Initial load
+  // Initial load wrapped in try/catch to prevent startup crashes
   useEffect(() => {
     (async () => {
-      configureNotifications();
-      const [c, f, lang] = await Promise.all([loadContacts(), loadFields(), loadLanguage()]);
-      setContacts(c);
-      setFields(f);
-      setLanguage(lang);
+      try {
+        configureNotifications();
+      } catch (e) {
+        console.warn('configureNotifications failed:', e?.message);
+      }
+
+      let loadedContacts = [];
+      let loadedFields = DEFAULT_FIELDS;
+      let loadedLang = 'en';
+
+      try {
+        const results = await Promise.all([
+          loadContacts().catch(() => []),
+          loadFields().catch(() => DEFAULT_FIELDS),
+          loadLanguage().catch(() => 'en'),
+        ]);
+        loadedContacts = results[0] || [];
+        loadedFields = results[1] || DEFAULT_FIELDS;
+        loadedLang = results[2] || 'en';
+      } catch (e) {
+        console.warn('Storage load error:', e?.message);
+      }
+
+      setContacts(loadedContacts);
+      setFields(loadedFields);
+      setLanguage(loadedLang);
       setLoading(false);
 
-      const granted = await requestPermissions();
-      if (granted && c.length > 0) {
-        await scheduleBirthdayNotifications(c, TRANSLATIONS[lang]);
+      // Notifications run AFTER the UI is shown, so even if they fail,
+      // the user can still use the app.
+      try {
+        const granted = await requestPermissions();
+        if (granted && loadedContacts.length > 0) {
+          await scheduleBirthdayNotifications(loadedContacts, TRANSLATIONS[loadedLang]);
+        }
+      } catch (e) {
+        console.warn('Notification setup failed:', e?.message);
       }
     })();
   }, []);
 
   const refresh = useCallback(async () => {
-    const [c, f] = await Promise.all([loadContacts(), loadFields()]);
-    setContacts(c);
-    setFields(f);
+    try {
+      const [c, f] = await Promise.all([loadContacts(), loadFields()]);
+      setContacts(c);
+      setFields(f);
+    } catch (e) {
+      console.warn('Refresh error:', e?.message);
+    }
   }, []);
 
   const navigate = useCallback((target, data) => {
@@ -77,43 +120,74 @@ export default function App() {
     }
   }, []);
 
-  const handleAddContact = useCallback(async (form) => {
-    const updated = [...contacts, form];
-    setContacts(updated);
-    await saveContacts(updated);
-    await scheduleBirthdayNotifications(updated, t);
-    navigate('home');
-  }, [contacts, navigate, t]);
+  const handleAddContact = useCallback(
+    async (form) => {
+      const updated = [...contacts, form];
+      setContacts(updated);
+      try {
+        await saveContacts(updated);
+        await scheduleBirthdayNotifications(updated, t);
+      } catch (e) {
+        console.warn('Save error:', e?.message);
+      }
+      navigate('home');
+    },
+    [contacts, navigate, t]
+  );
 
-  const handleEditContact = useCallback(async (form) => {
-    const updated = contacts.map((c) => (c.id === form.id ? form : c));
-    setContacts(updated);
-    await saveContacts(updated);
-    await scheduleBirthdayNotifications(updated, t);
-    setSelectedContact(form);
-    setScreen('detail');
-  }, [contacts, t]);
+  const handleEditContact = useCallback(
+    async (form) => {
+      const updated = contacts.map((c) => (c.id === form.id ? form : c));
+      setContacts(updated);
+      try {
+        await saveContacts(updated);
+        await scheduleBirthdayNotifications(updated, t);
+      } catch (e) {
+        console.warn('Edit error:', e?.message);
+      }
+      setSelectedContact(form);
+      setScreen('detail');
+    },
+    [contacts, t]
+  );
 
-  const handleDeleteContact = useCallback(async (id) => {
-    const updated = contacts.filter((c) => c.id !== id);
-    setContacts(updated);
-    await saveContacts(updated);
-    await scheduleBirthdayNotifications(updated, t);
-    navigate('home');
-  }, [contacts, navigate, t]);
+  const handleDeleteContact = useCallback(
+    async (id) => {
+      const updated = contacts.filter((c) => c.id !== id);
+      setContacts(updated);
+      try {
+        await saveContacts(updated);
+        await scheduleBirthdayNotifications(updated, t);
+      } catch (e) {
+        console.warn('Delete error:', e?.message);
+      }
+      navigate('home');
+    },
+    [contacts, navigate, t]
+  );
 
   const handleSaveFields = useCallback(async (newFields) => {
     setFields(newFields);
-    await saveFields(newFields);
+    try {
+      await saveFields(newFields);
+    } catch (e) {
+      console.warn('Save fields error:', e?.message);
+    }
     setScreen('home');
   }, []);
 
-  const handleChangeLanguage = useCallback(async (lang) => {
-    setLanguage(lang);
-    await saveLanguage(lang);
-    // Re-schedule notifications with updated language
-    await scheduleBirthdayNotifications(contacts, TRANSLATIONS[lang]);
-  }, [contacts]);
+  const handleChangeLanguage = useCallback(
+    async (lang) => {
+      setLanguage(lang);
+      try {
+        await saveLanguage(lang);
+        await scheduleBirthdayNotifications(contacts, TRANSLATIONS[lang]);
+      } catch (e) {
+        console.warn('Language change error:', e?.message);
+      }
+    },
+    [contacts]
+  );
 
   if (loading) return null;
 
