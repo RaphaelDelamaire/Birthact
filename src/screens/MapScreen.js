@@ -20,7 +20,10 @@ function esc(str) {
   return (str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function buildMapHTML(markers) {
+function buildMapHTML(markers, isDark) {
+  const tileUrl = isDark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
   const markerLines = markers.map((m) => {
     const initials = ((m.firstName[0] || '') + (m.lastName[0] || '')).toUpperCase() || '?';
     const fullName = esc(`${m.firstName} ${m.lastName}`.trim());
@@ -33,7 +36,7 @@ function buildMapHTML(markers) {
       L.marker([${m.lat},${m.lon}],{icon:L.divIcon({
         html:'${pinHTML}',
         className:'',iconSize:[38,38],iconAnchor:[19,38],popupAnchor:[0,-40]
-      })}).bindPopup('<b>${fullName}</b><br><span style="color:#888;font-size:12px">${city}</span>')
+      })}).bindPopup('<b>${fullName}</b><br><span style="color:#888;font-size:12px">${city}</span><br><button data-id="${m.id}" onclick="window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(\\'openContact:\\'+this.getAttribute(\\'data-id\\'))" style="margin-top:6px;background:#E8572A;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">→</button>')
     )`;
   }).join(';\n');
 
@@ -81,7 +84,7 @@ body{margin:0;padding:0}
 <button id="locbtn" onclick="reqLoc()">📍</button>
 <script>
 var map=L.map('map',{zoomControl:true}).setView([20,10],2);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+L.tileLayer('${tileUrl}',{
   attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19,subdomains:'abcd'
 }).addTo(map);
 
@@ -117,8 +120,9 @@ function reqLoc(){
 </html>`;
 }
 
-export default function MapScreen({ contacts, onBack, colors, t }) {
+export default function MapScreen({ contacts, onBack, onOpenContact, colors, t }) {
   const C = colors || COLORS;
+  const isDark = C.background === '#0F0F1A';
   const [markers, setMarkers] = useState(null);
   const [loading, setLoading] = useState(true);
   const userCoordsRef = useRef(null);
@@ -161,6 +165,7 @@ export default function MapScreen({ contacts, onBack, colors, t }) {
           result.push({
             lat: coords.lat,
             lon: coords.lon,
+            id: c.id,
             firstName: c.firstName || '',
             lastName: c.lastName || '',
             city: c.city,
@@ -206,7 +211,11 @@ export default function MapScreen({ contacts, onBack, colors, t }) {
   };
 
   const handleMessage = (e) => {
-    if (e.nativeEvent.data === 'requestLocation') injectLocation();
+    const data = e.nativeEvent.data;
+    if (data === 'requestLocation') { injectLocation(); return; }
+    if (data.startsWith('openContact:') && onOpenContact) {
+      onOpenContact(data.slice(12));
+    }
   };
 
   const noCities = contacts.every((c) => !c.city);
@@ -236,7 +245,7 @@ export default function MapScreen({ contacts, onBack, colors, t }) {
       ) : markers && markers.length > 0 ? (
         <WebView
           ref={webviewRef}
-          source={{ html: buildMapHTML(markers) }}
+          source={{ html: buildMapHTML(markers, isDark) }}
           style={{ flex: 1 }}
           javaScriptEnabled
           domStorageEnabled

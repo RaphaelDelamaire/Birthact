@@ -19,44 +19,38 @@ import { generateId, getInitials, dateToDisplay, displayToISO, formatDateInput }
 import { getFieldLabel } from '../utils/i18n';
 import { COUNTRIES, getCountryByCode } from '../utils/countries';
 import { loadDefaultCountry } from '../utils/storage';
+import { WebView } from 'react-native-webview';
 
-function CityInput({ value, onChange, placeholder, styles, colors }) {
+const MAP_PICKER_HTML = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script><style>body{margin:0;padding:0}#map{width:100%;height:100vh}#hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);color:#fff;padding:6px 16px;border-radius:20px;font-size:13px;z-index:1000;pointer-events:none;white-space:nowrap}</style></head><body><div id="map"></div><div id="hint">Appuyez pour sélectionner</div><script>var map=L.map('map').setView([20,10],2);L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'',maxZoom:19,subdomains:'abcd'}).addTo(map);var pin=null;map.on('click',function(e){if(pin)map.removeLayer(pin);pin=L.marker(e.latlng).addTo(map);if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(e.latlng.lat+','+e.latlng.lng);document.getElementById('hint').style.display='none';});<\/script></body></html>`;
+
+function CityInput({ value, onChange, placeholder, styles, colors, pickerTitle }) {
   const C = colors || COLORS;
   const [query, setQuery] = useState(value || '');
   const [suggestions, setSuggestions] = useState([]);
+  const [pickerVisible, setPickerVisible] = useState(false);
   const timer = useRef(null);
 
-  useEffect(() => {
-    setQuery(value || '');
-  }, [value]);
-
-  useEffect(() => {
-    return () => { if (timer.current) clearTimeout(timer.current); };
-  }, []);
+  useEffect(() => { setQuery(value || ''); }, [value]);
+  useEffect(() => { return () => { if (timer.current) clearTimeout(timer.current); }; }, []);
 
   const search = async (text) => {
     if (text.length < 2) { setSuggestions([]); return; }
     try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&limit=5&addressdetails=1&accept-language=fr`;
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&limit=6&addressdetails=1`;
       const res = await fetch(url, { headers: { 'User-Agent': 'Birthact/1.0' } });
       const data = await res.json();
       const seen = new Set();
       const results = [];
       for (const item of data) {
-        const a = item.address || {};
-        const city = a.city || a.town || a.village || a.municipality || a.county || item.name;
-        const region = a.state || a.county || '';
-        const country = a.country || '';
-        const key = `${city}|${country}`;
-        if (city && !seen.has(key)) {
-          seen.add(key);
-          results.push({ id: item.place_id, city, region, country });
-        }
+        if (seen.has(item.place_id)) continue;
+        seen.add(item.place_id);
+        const parts = item.display_name.split(', ');
+        const label = parts.slice(0, 2).join(', ');
+        const sub = parts.slice(2, 5).join(', ');
+        results.push({ id: item.place_id, label, sub });
       }
       setSuggestions(results);
-    } catch {
-      setSuggestions([]);
-    }
+    } catch { setSuggestions([]); }
   };
 
   const handleChange = (text) => {
@@ -67,24 +61,46 @@ function CityInput({ value, onChange, placeholder, styles, colors }) {
   };
 
   const select = (s) => {
-    setQuery(s.city);
-    onChange(s.city);
+    setQuery(s.label);
+    onChange(s.label);
     setSuggestions([]);
     Keyboard.dismiss();
   };
 
+  const handleMapPick = async (latlon) => {
+    setPickerVisible(false);
+    try {
+      const [lat, lon] = latlon.split(',');
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'Birthact/1.0' } });
+      const data = await res.json();
+      if (data.display_name) {
+        const parts = data.display_name.split(', ');
+        const addr = parts.slice(0, 2).join(', ');
+        setQuery(addr);
+        onChange(addr);
+        setSuggestions([]);
+      }
+    } catch {}
+  };
+
   return (
-    <View>
-      <TextInput
-        style={styles.input}
-        value={query}
-        onChangeText={handleChange}
-        placeholder={placeholder}
-        placeholderTextColor={C.grayLight}
-        autoCapitalize="words"
-      />
+    <View style={{ marginBottom: 16 }}>
+      <View style={styles.cityInputRow}>
+        <TextInput
+          style={[styles.input, { flex: 1, marginBottom: 0 }]}
+          value={query}
+          onChangeText={handleChange}
+          placeholder={placeholder}
+          placeholderTextColor={C.grayLight}
+          autoCapitalize="words"
+        />
+        <TouchableOpacity style={styles.mapPickBtn} onPress={() => setPickerVisible(true)} activeOpacity={0.7}>
+          <Ionicons name="map-outline" size={20} color={C.accent} />
+        </TouchableOpacity>
+      </View>
       {suggestions.length > 0 && (
-        <View style={styles.suggestionBox}>
+        <View style={[styles.suggestionBox, { marginTop: 4, marginBottom: 0 }]}>
           {suggestions.map((s) => (
             <TouchableOpacity
               key={s.id}
@@ -94,15 +110,29 @@ function CityInput({ value, onChange, placeholder, styles, colors }) {
             >
               <Ionicons name="location-outline" size={14} color={C.accent} style={{ marginTop: 1 }} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.suggestionCity}>{s.city}</Text>
-                <Text style={styles.suggestionSub} numberOfLines={1}>
-                  {[s.region, s.country].filter(Boolean).join(', ')}
-                </Text>
+                <Text style={styles.suggestionCity}>{s.label}</Text>
+                <Text style={styles.suggestionSub} numberOfLines={1}>{s.sub}</Text>
               </View>
             </TouchableOpacity>
           ))}
         </View>
       )}
+      <Modal visible={pickerVisible} animationType="slide" onRequestClose={() => setPickerVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: C.background }}>
+          <View style={styles.mapPickerHeader}>
+            <Text style={styles.modalTitle}>{pickerTitle}</Text>
+            <TouchableOpacity onPress={() => setPickerVisible(false)}>
+              <Ionicons name="close" size={24} color={C.dark} />
+            </TouchableOpacity>
+          </View>
+          <WebView
+            source={{ html: MAP_PICKER_HTML }}
+            style={{ flex: 1 }}
+            javaScriptEnabled
+            onMessage={(e) => handleMapPick(e.nativeEvent.data)}
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -209,6 +239,17 @@ const makeStyles = (COLORS) => StyleSheet.create({
   countryRowFlag: { fontSize: 22 },
   countryRowName: { flex: 1, fontSize: 15, color: COLORS.dark },
   countryRowDial: { fontSize: 13, color: COLORS.gray },
+  cityInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  mapPickBtn: {
+    backgroundColor: COLORS.card, borderRadius: 10, borderWidth: 1.5,
+    borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 12,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  mapPickerHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingTop: 54, paddingBottom: 14,
+    backgroundColor: COLORS.card, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
 });
 
 export default function ContactFormScreen({ contact, fields, onSave, onDelete, onCancel, colors, t }) {
@@ -336,6 +377,7 @@ export default function ContactFormScreen({ contact, fields, onSave, onDelete, o
           placeholder={`${label}...`}
           styles={styles}
           colors={C}
+          pickerTitle={t.mapTitle}
         />
       );
     }

@@ -80,7 +80,7 @@ const makeStyles = (COLORS) => StyleSheet.create({
     borderRadius: 20,
     alignSelf: 'flex-start',
   },
-  badgeText: { fontSize: 10, fontWeight: '700', color: COLORS.dark },
+  badgeText: { fontSize: 10, fontWeight: '700', color: '#1A1A2E' },
 });
 
 export default function ContactCard({ contact, onPress, colors, t, birthdayMode = false }) {
@@ -142,7 +142,7 @@ export default function ContactCard({ contact, onPress, colors, t, birthdayMode 
         {isToday && (
           <View style={styles.badgeRow}>
             <View style={styles.badgeToday}>
-              <Ionicons name="gift" size={11} color={C.dark} />
+              <Ionicons name="gift" size={11} color="#1A1A2E" />
               <Text style={styles.badgeText}>{t.birthdayTodayBadge}</Text>
             </View>
           </View>
@@ -150,7 +150,7 @@ export default function ContactCard({ contact, onPress, colors, t, birthdayMode 
         {soon && (
           <View style={styles.badgeRow}>
             <View style={styles.badgeSoon}>
-              <Ionicons name="gift-outline" size={11} color={C.dark} />
+              <Ionicons name="gift-outline" size={11} color="#1A1A2E" />
               <Text style={styles.badgeText}>{t.birthdayInDays(days)}</Text>
             </View>
           </View>

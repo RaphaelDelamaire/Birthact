@@ -282,6 +282,7 @@ export default function App() {
         <MapScreen
           contacts={contacts}
           onBack={() => navigate('home')}
+          onOpenContact={(id) => { const c = contacts.find((x) => x.id === id); if (c) navigate('detail', c); }}
           colors={colors}
           t={t}
         />

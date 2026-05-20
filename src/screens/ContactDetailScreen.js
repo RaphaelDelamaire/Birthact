@@ -34,7 +34,7 @@ const makeStyles = (COLORS) => StyleSheet.create({
     backgroundColor: COLORS.birthday, paddingHorizontal: 14, paddingVertical: 5,
     borderRadius: 20, marginTop: 12,
   },
-  birthdayText: { fontSize: 12, fontWeight: '700', color: COLORS.dark },
+  birthdayText: { fontSize: 12, fontWeight: '700', color: '#1A1A2E' },
   actions: {
     flexDirection: 'row', justifyContent: 'center', gap: 16, paddingVertical: 16,
     marginHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border,
@@ -98,7 +98,7 @@ export default function ContactDetailScreen({ contact, fields, onEdit, onBack, c
           )}
           {isToday && (
             <View style={styles.birthdayBadge}>
-              <Ionicons name="gift" size={14} color={C.dark} />
+              <Ionicons name="gift" size={14} color="#1A1A2E" />
               <Text style={styles.birthdayText}>
                 {t.happyBirthday}{age !== null ? ` ${t.yearsOld(age)}` : ''}
               </Text>
