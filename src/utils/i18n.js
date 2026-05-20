@@ -20,6 +20,7 @@ export const TRANSLATIONS = {
     birthdayInDays: (d) => `In ${d} day${d > 1 ? 's' : ''}`,
     upcomingBirthdays: 'Upcoming birthdays',
     allContacts: 'All contacts',
+    noBirthdayContacts: 'Without birthday',
 
     // Contact form
     newContact: 'New contact',
@@ -35,6 +36,9 @@ export const TRANSLATIONS = {
     fieldRequiredMsg: 'Please enter at least a first or last name.',
     addPhoto: 'Add a photo',
     photoHint: 'Tip: save the LinkedIn photo to your gallery, then select it here',
+    datePlaceholder: 'DD/MM/YYYY',
+    selectCountry: 'Select a country',
+    phoneCountry: 'Country',
 
     // Contact detail
     contact: 'Contact',
@@ -71,6 +75,7 @@ export const TRANSLATIONS = {
     firstName: 'First name',
     phone: 'Phone',
     birthday: 'Birthday',
+    city: 'City',
     metAt: 'Where we met',
     job: 'Job / Position',
     company: 'Company',
@@ -97,6 +102,17 @@ export const TRANSLATIONS = {
     settings: 'Settings',
     english: 'English',
     french: 'Français',
+    dataManagement: 'Data',
+    defaultCountryLabel: 'Default country (phone)',
+    manageFieldsShort: 'Manage fields',
+
+    // Map
+    map: 'Map',
+    mapTitle: 'World map',
+    mapEmpty: 'No city registered',
+    mapEmptySub: 'Add a city to your contacts to see them on the map',
+    mapLoading: 'Loading map...',
+    mapGeocoding: 'Locating cities...',
   },
 
   fr: {
@@ -119,6 +135,7 @@ export const TRANSLATIONS = {
     birthdayInDays: (d) => `Dans ${d} jour${d > 1 ? 's' : ''}`,
     upcomingBirthdays: 'Prochains anniversaires',
     allContacts: 'Tous les contacts',
+    noBirthdayContacts: 'Sans anniversaire',
 
     newContact: 'Nouveau contact',
     editContact: 'Modifier',
@@ -133,6 +150,9 @@ export const TRANSLATIONS = {
     fieldRequiredMsg: 'Veuillez entrer au moins un nom ou prénom.',
     addPhoto: 'Ajouter une photo',
     photoHint: 'Astuce : sauvegardez la photo LinkedIn dans votre galerie puis sélectionnez-la ici',
+    datePlaceholder: 'JJ/MM/AAAA',
+    selectCountry: 'Sélectionner un pays',
+    phoneCountry: 'Pays',
 
     contact: 'Contact',
     happyBirthday: 'Joyeux anniversaire !',
@@ -165,6 +185,7 @@ export const TRANSLATIONS = {
     firstName: 'Prénom',
     phone: 'Téléphone',
     birthday: 'Anniversaire',
+    city: 'Ville',
     metAt: 'Lieu de rencontre',
     job: 'Métier / Poste',
     company: 'Entreprise',
@@ -188,6 +209,16 @@ export const TRANSLATIONS = {
     settings: 'Réglages',
     english: 'English',
     french: 'Français',
+    dataManagement: 'Données',
+    defaultCountryLabel: 'Pays par défaut (téléphone)',
+    manageFieldsShort: 'Gérer les champs',
+
+    map: 'Carte',
+    mapTitle: 'Carte du monde',
+    mapEmpty: 'Aucune ville enregistrée',
+    mapEmptySub: 'Ajoutez une ville à vos contacts pour les voir sur la carte',
+    mapLoading: 'Chargement...',
+    mapGeocoding: 'Localisation des villes...',
   },
 };
 
@@ -200,6 +231,7 @@ export function getFieldLabel(fieldId, t) {
     firstName: t.firstName,
     phone: t.phone,
     birthday: t.birthday,
+    city: t.city,
     metAt: t.metAt,
     job: t.job,
     company: t.company,

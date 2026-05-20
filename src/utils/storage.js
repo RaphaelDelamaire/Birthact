@@ -73,6 +73,29 @@ export async function saveLanguage(lang) {
 }
 
 /**
+ * Load default country code for phone picker.
+ */
+export async function loadDefaultCountry() {
+  try {
+    const val = await AsyncStorage.getItem(STORAGE_KEYS.defaultCountry);
+    return val || 'FR';
+  } catch {
+    return 'FR';
+  }
+}
+
+/**
+ * Save default country code.
+ */
+export async function saveDefaultCountry(code) {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.defaultCountry, code);
+  } catch (e) {
+    console.error('Error saving default country:', e);
+  }
+}
+
+/**
  * Export all data as a JSON string.
  */
 export async function exportData() {

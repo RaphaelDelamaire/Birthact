@@ -52,7 +52,8 @@ export function daysUntilBirthday(dateStr) {
 export function formatDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 /**
@@ -73,6 +74,40 @@ export function getAge(dateStr) {
  */
 export function getInitials(firstName, lastName) {
   return ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase() || '?';
+}
+
+/**
+ * Convert ISO date "YYYY-MM-DD" to display format "DD/MM/YYYY"
+ */
+export function dateToDisplay(isoStr) {
+  if (!isoStr) return '';
+  const [y, m, d] = isoStr.split('-');
+  if (!y || !m || !d) return '';
+  return `${d}/${m}/${y}`;
+}
+
+/**
+ * Convert display format "DD/MM/YYYY" to ISO "YYYY-MM-DD"
+ */
+export function displayToISO(displayStr) {
+  if (!displayStr) return '';
+  const parts = displayStr.split('/');
+  if (parts.length !== 3 || parts[2].length !== 4) return '';
+  const [d, m, y] = parts;
+  return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+}
+
+/**
+ * Auto-format date input to DD/MM/YYYY as user types digits
+ */
+export function formatDateInput(text) {
+  const digits = text.replace(/[^0-9]/g, '');
+  let result = '';
+  for (let i = 0; i < digits.length && i < 8; i++) {
+    if (i === 2 || i === 4) result += '/';
+    result += digits[i];
+  }
+  return result;
 }
 
 /**

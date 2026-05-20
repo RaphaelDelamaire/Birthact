@@ -10,8 +10,9 @@ export default function ContactDetailScreen({ contact, fields, onEdit, onBack, t
   const age = getAge(contact.birthday);
   const initials = getInitials(contact.firstName, contact.lastName);
 
-  const handleCall = () => { if (contact.phone) Linking.openURL(`tel:${contact.phone}`); };
-  const handleSMS = () => { if (contact.phone) Linking.openURL(`sms:${contact.phone}`); };
+  const cleanPhone = contact.phone ? contact.phone.replace(/\s/g, '') : null;
+  const handleCall = () => { if (cleanPhone) Linking.openURL(`tel:${cleanPhone}`); };
+  const handleSMS = () => { if (cleanPhone) Linking.openURL(`sms:${cleanPhone}`); };
   const handleEmail = () => { if (contact.email) Linking.openURL(`mailto:${contact.email}`); };
 
   const resolveLabel = (field) => getFieldLabel(field.id, t) || field.label;

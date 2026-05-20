@@ -23,6 +23,8 @@ export const STORAGE_KEYS = {
   fields: '@birthact_fields',
   notifScheduled: '@birthact_notif_scheduled',
   language: '@birthact_language',
+  defaultCountry: '@birthact_default_country',
+  geocodeCache: '@birthact_geocache',
 };
 
 export const DEFAULT_FIELDS = [
@@ -30,6 +32,7 @@ export const DEFAULT_FIELDS = [
   { id: 'firstName', label: 'firstName', type: 'text', icon: 'person-outline', removable: false },
   { id: 'phone', label: 'phone', type: 'phone', icon: 'call-outline', removable: false },
   { id: 'birthday', label: 'birthday', type: 'date', icon: 'gift-outline', removable: false },
+  { id: 'city', label: 'city', type: 'text', icon: 'map-outline', removable: false },
   { id: 'metAt', label: 'metAt', type: 'text', icon: 'location-outline', removable: false },
   { id: 'job', label: 'job', type: 'text', icon: 'briefcase-outline', removable: false },
   { id: 'company', label: 'company', type: 'text', icon: 'business-outline', removable: false },

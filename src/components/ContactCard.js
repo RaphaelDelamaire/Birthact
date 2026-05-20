@@ -2,13 +2,41 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../utils/constants';
-import { isBirthdayToday, isBirthdaySoon, daysUntilBirthday, getInitials } from '../utils/helpers';
+import { isBirthdayToday, isBirthdaySoon, daysUntilBirthday, getInitials, dateToDisplay } from '../utils/helpers';
 
-export default function ContactCard({ contact, onPress, t }) {
+export default function ContactCard({ contact, onPress, t, birthdayMode = false }) {
   const isToday = isBirthdayToday(contact.birthday);
   const soon = !isToday && isBirthdaySoon(contact.birthday);
   const days = daysUntilBirthday(contact.birthday);
   const initials = getInitials(contact.firstName, contact.lastName);
+
+  const renderMeta = () => {
+    if (birthdayMode) {
+      if (!contact.birthday) return null;
+      return (
+        <View style={styles.metaItem}>
+          <Ionicons name="gift-outline" size={12} color={COLORS.gray} />
+          <Text style={styles.metaText} numberOfLines={1}>{dateToDisplay(contact.birthday)}</Text>
+        </View>
+      );
+    }
+    return (
+      <>
+        {!!contact.job && (
+          <View style={styles.metaItem}>
+            <Ionicons name="briefcase-outline" size={12} color={COLORS.gray} />
+            <Text style={styles.metaText} numberOfLines={1}>{contact.job}</Text>
+          </View>
+        )}
+        {!!contact.city && (
+          <View style={styles.metaItem}>
+            <Ionicons name="map-outline" size={12} color={COLORS.gray} />
+            <Text style={styles.metaText} numberOfLines={1}>{contact.city}</Text>
+          </View>
+        )}
+      </>
+    );
+  };
 
   return (
     <TouchableOpacity
@@ -28,18 +56,7 @@ export default function ContactCard({ contact, onPress, t }) {
           {contact.firstName} {contact.lastName}
         </Text>
         <View style={styles.meta}>
-          {!!contact.job && (
-            <View style={styles.metaItem}>
-              <Ionicons name="briefcase-outline" size={12} color={COLORS.gray} />
-              <Text style={styles.metaText} numberOfLines={1}>{contact.job}</Text>
-            </View>
-          )}
-          {!!contact.metAt && (
-            <View style={styles.metaItem}>
-              <Ionicons name="location-outline" size={12} color={COLORS.gray} />
-              <Text style={styles.metaText} numberOfLines={1}>{contact.metAt}</Text>
-            </View>
-          )}
+          {renderMeta()}
         </View>
         {isToday && (
           <View style={styles.badgeRow}>
@@ -92,46 +109,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 14,
     overflow: 'hidden',
+    flexShrink: 0,
   },
-  avatarBirthday: {
-    backgroundColor: COLORS.birthday,
-  },
-  avatarText: {
-    color: COLORS.white,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  info: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.dark,
-  },
+  avatarBirthday: { backgroundColor: COLORS.birthday },
+  avatarText: { color: COLORS.white, fontSize: 17, fontWeight: '700' },
+  avatarImage: { width: '100%', height: '100%' },
+  info: { flex: 1, minWidth: 0 },
+  name: { fontSize: 15, fontWeight: '600', color: COLORS.dark },
   meta: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     gap: 8,
     marginTop: 3,
+    overflow: 'hidden',
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
+    flexShrink: 1,
+    minWidth: 0,
   },
   metaText: {
     fontSize: 12,
     color: COLORS.gray,
-    maxWidth: 120,
+    flexShrink: 1,
   },
-  badgeRow: {
-    marginTop: 6,
-  },
+  badgeRow: { marginTop: 6 },
   badgeToday: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -152,9 +156,5 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignSelf: 'flex-start',
   },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.dark,
-  },
+  badgeText: { fontSize: 10, fontWeight: '700', color: COLORS.dark },
 });

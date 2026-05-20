@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StatusBar, LogBox, View, Text } from 'react-native';
+import { StatusBar, LogBox, BackHandler } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import HomeScreen from './src/screens/HomeScreen';
@@ -7,6 +7,7 @@ import ContactFormScreen from './src/screens/ContactFormScreen';
 import ContactDetailScreen from './src/screens/ContactDetailScreen';
 import FieldManagerScreen from './src/screens/FieldManagerScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import MapScreen from './src/screens/MapScreen';
 
 import {
   loadContacts,
@@ -15,6 +16,8 @@ import {
   saveFields,
   loadLanguage,
   saveLanguage,
+  loadDefaultCountry,
+  saveDefaultCountry,
 } from './src/utils/storage';
 import {
   requestPermissions,
@@ -30,24 +33,18 @@ export default function App() {
   const [contacts, setContacts] = useState([]);
   const [fields, setFields] = useState(DEFAULT_FIELDS);
   const [language, setLanguage] = useState('en');
+  const [defaultCountry, setDefaultCountry] = useState('FR');
   const [screen, setScreen] = useState('home');
   const [selectedContact, setSelectedContact] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [initError, setInitError] = useState(null);
 
   const t = TRANSLATIONS[language] || TRANSLATIONS.en;
 
-  // Initial load wrapped in try/catch to prevent startup crashes
   useEffect(() => {
     (async () => {
-      try {
-        configureNotifications();
-      } catch (e) {
-        console.warn('configureNotifications failed:', e?.message);
-      }
+      try { configureNotifications(); } catch {}
 
       let loadedContacts = [];
-      let loadedFields = DEFAULT_FIELDS;
       let loadedLang = 'en';
 
       try {
@@ -55,40 +52,49 @@ export default function App() {
           loadContacts().catch(() => []),
           loadFields().catch(() => DEFAULT_FIELDS),
           loadLanguage().catch(() => 'en'),
+          loadDefaultCountry().catch(() => 'FR'),
         ]);
         loadedContacts = results[0] || [];
-        loadedFields = results[1] || DEFAULT_FIELDS;
         loadedLang = results[2] || 'en';
-      } catch (e) {
-        console.warn('Storage load error:', e?.message);
-      }
+        setContacts(loadedContacts);
+        setFields(results[1] || DEFAULT_FIELDS);
+        setLanguage(loadedLang);
+        setDefaultCountry(results[3] || 'FR');
+      } catch {}
 
-      setContacts(loadedContacts);
-      setFields(loadedFields);
-      setLanguage(loadedLang);
       setLoading(false);
 
-      // Notifications run AFTER the UI is shown, so even if they fail,
-      // the user can still use the app.
       try {
         const granted = await requestPermissions();
         if (granted && loadedContacts.length > 0) {
           await scheduleBirthdayNotifications(loadedContacts, TRANSLATIONS[loadedLang]);
         }
-      } catch (e) {
-        console.warn('Notification setup failed:', e?.message);
-      }
+      } catch {}
     })();
   }, []);
+
+  // Android hardware back button
+  useEffect(() => {
+    const onBack = () => {
+      if (screen === 'home') return false; // let system handle (exit app)
+      if (screen === 'detail') { setScreen('home'); setSelectedContact(null); return true; }
+      if (screen === 'edit') { setScreen('detail'); return true; }
+      if (screen === 'add') { setScreen('home'); return true; }
+      if (screen === 'fields') { setScreen('settings'); return true; }
+      if (screen === 'settings') { setScreen('home'); return true; }
+      if (screen === 'map') { setScreen('home'); return true; }
+      return false;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => sub.remove();
+  }, [screen]);
 
   const refresh = useCallback(async () => {
     try {
       const [c, f] = await Promise.all([loadContacts(), loadFields()]);
       setContacts(c);
       setFields(f);
-    } catch (e) {
-      console.warn('Refresh error:', e?.message);
-    }
+    } catch {}
   }, []);
 
   const navigate = useCallback((target, data) => {
@@ -115,6 +121,9 @@ export default function App() {
       case 'settings':
         setScreen('settings');
         break;
+      case 'map':
+        setScreen('map');
+        break;
       default:
         setScreen('home');
     }
@@ -127,9 +136,7 @@ export default function App() {
       try {
         await saveContacts(updated);
         await scheduleBirthdayNotifications(updated, t);
-      } catch (e) {
-        console.warn('Save error:', e?.message);
-      }
+      } catch {}
       navigate('home');
     },
     [contacts, navigate, t]
@@ -142,9 +149,7 @@ export default function App() {
       try {
         await saveContacts(updated);
         await scheduleBirthdayNotifications(updated, t);
-      } catch (e) {
-        console.warn('Edit error:', e?.message);
-      }
+      } catch {}
       setSelectedContact(form);
       setScreen('detail');
     },
@@ -158,9 +163,7 @@ export default function App() {
       try {
         await saveContacts(updated);
         await scheduleBirthdayNotifications(updated, t);
-      } catch (e) {
-        console.warn('Delete error:', e?.message);
-      }
+      } catch {}
       navigate('home');
     },
     [contacts, navigate, t]
@@ -168,12 +171,8 @@ export default function App() {
 
   const handleSaveFields = useCallback(async (newFields) => {
     setFields(newFields);
-    try {
-      await saveFields(newFields);
-    } catch (e) {
-      console.warn('Save fields error:', e?.message);
-    }
-    setScreen('home');
+    try { await saveFields(newFields); } catch {}
+    setScreen('settings');
   }, []);
 
   const handleChangeLanguage = useCallback(
@@ -182,12 +181,15 @@ export default function App() {
       try {
         await saveLanguage(lang);
         await scheduleBirthdayNotifications(contacts, TRANSLATIONS[lang]);
-      } catch (e) {
-        console.warn('Language change error:', e?.message);
-      }
+      } catch {}
     },
     [contacts]
   );
+
+  const handleChangeDefaultCountry = useCallback(async (code) => {
+    setDefaultCountry(code);
+    try { await saveDefaultCountry(code); } catch {}
+  }, []);
 
   if (loading) return null;
 
@@ -239,7 +241,7 @@ export default function App() {
         <FieldManagerScreen
           fields={fields}
           onSave={handleSaveFields}
-          onCancel={() => navigate('home')}
+          onCancel={() => navigate('settings')}
           t={t}
         />
       )}
@@ -248,6 +250,18 @@ export default function App() {
         <SettingsScreen
           language={language}
           onChangeLanguage={handleChangeLanguage}
+          onBack={() => navigate('home')}
+          onNavigateFields={() => navigate('fields')}
+          defaultCountry={defaultCountry}
+          onChangeDefaultCountry={handleChangeDefaultCountry}
+          onRefresh={refresh}
+          t={t}
+        />
+      )}
+
+      {screen === 'map' && (
+        <MapScreen
+          contacts={contacts}
           onBack={() => navigate('home')}
           t={t}
         />

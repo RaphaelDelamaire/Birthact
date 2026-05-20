@@ -4,18 +4,14 @@ import {
   Text,
   TextInput,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import * as DocumentPicker from 'expo-document-picker';
 import ContactCard from '../components/ContactCard';
 import { COLORS } from '../utils/constants';
 import { sortByName, sortByBirthday, isBirthdayToday } from '../utils/helpers';
-import { exportData, importData } from '../utils/storage';
 
 export default function HomeScreen({ contacts, fields, onNavigate, onRefresh, t }) {
   const [search, setSearch] = useState('');
@@ -31,42 +27,48 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh, t 
     );
   });
 
-  const sorted = tab === 'birthdays' ? sortByBirthday(filtered) : sortByName(filtered);
+  const withBirthday = filtered.filter((c) => !!c.birthday);
+  const withoutBirthday = filtered.filter((c) => !c.birthday);
 
-  const handleExport = async () => {
-    try {
-      const json = await exportData();
-      const fileUri =
-        FileSystem.documentDirectory +
-        `birthact_export_${new Date().toISOString().slice(0, 10)}.json`;
-      await FileSystem.writeAsStringAsync(fileUri, json, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'application/json',
-        dialogTitle: t.exportTitle,
-      });
-    } catch (e) {
-      Alert.alert(t.error, t.exportError);
-    }
-  };
+  const sorted =
+    tab === 'birthdays' ? sortByBirthday(filtered) : sortByName(filtered);
 
-  const handleImport = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/json',
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled) return;
-      const fileUri = result.assets[0].uri;
-      const content = await FileSystem.readAsStringAsync(fileUri);
-      const count = await importData(content);
-      Alert.alert(t.importSuccessTitle, t.importSuccess(count));
-      onRefresh();
-    } catch (e) {
-      Alert.alert(t.error, t.importError);
-    }
-  };
+  const renderBirthdayList = () => (
+    <>
+      {withBirthday.length === 0 && withoutBirthday.length === 0 && (
+        <View style={styles.empty}>
+          <Text style={styles.emptyIcon}>🎂</Text>
+          <Text style={styles.emptyTitle}>{t.noBirthdaysTitle}</Text>
+          <Text style={styles.emptySub}>{t.noBirthdaysSub}</Text>
+        </View>
+      )}
+      {sortByBirthday(withBirthday).map((item) => (
+        <ContactCard
+          key={item.id}
+          contact={item}
+          onPress={() => onNavigate('detail', item)}
+          t={t}
+          birthdayMode
+        />
+      ))}
+      {withoutBirthday.length > 0 && (
+        <>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeaderText}>{t.noBirthdayContacts}</Text>
+          </View>
+          {sortByName(withoutBirthday).map((item) => (
+            <ContactCard
+              key={item.id}
+              contact={item}
+              onPress={() => onNavigate('detail', item)}
+              t={t}
+              birthdayMode
+            />
+          ))}
+        </>
+      )}
+    </>
+  );
 
   const renderEmpty = () => (
     <View style={styles.empty}>
@@ -102,12 +104,20 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh, t 
                 : ''}
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={() => onNavigate('settings')}
-            style={styles.settingsBtn}
-          >
-            <Ionicons name="settings-outline" size={22} color="rgba(255,255,255,0.7)" />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => onNavigate('map')}
+              style={styles.headerBtn}
+            >
+              <Ionicons name="map-outline" size={22} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => onNavigate('settings')}
+              style={styles.headerBtn}
+            >
+              <Ionicons name="settings-outline" size={22} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={18} color="rgba(255,255,255,0.5)" />
@@ -124,22 +134,6 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh, t 
             </TouchableOpacity>
           )}
         </View>
-      </View>
-
-      {/* Toolbar */}
-      <View style={styles.toolbar}>
-        <TouchableOpacity style={styles.toolBtn} onPress={handleExport}>
-          <Ionicons name="download-outline" size={16} color={COLORS.dark} />
-          <Text style={styles.toolText}>{t.export}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.toolBtn} onPress={handleImport}>
-          <Ionicons name="push-outline" size={16} color={COLORS.dark} />
-          <Text style={styles.toolText}>{t.import}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.toolBtn} onPress={() => onNavigate('fields')}>
-          <Ionicons name="options-outline" size={16} color={COLORS.dark} />
-          <Text style={styles.toolText}>{t.fields}</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Tabs */}
@@ -165,16 +159,22 @@ export default function HomeScreen({ contacts, fields, onNavigate, onRefresh, t 
       </View>
 
       {/* Contact List */}
-      <FlatList
-        data={sorted}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ContactCard contact={item} onPress={() => onNavigate('detail', item)} t={t} />
-        )}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={renderEmpty}
-        showsVerticalScrollIndicator={false}
-      />
+      {tab === 'birthdays' ? (
+        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+          {renderBirthdayList()}
+        </ScrollView>
+      ) : (
+        <FlatList
+          data={sorted}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ContactCard contact={item} onPress={() => onNavigate('detail', item)} t={t} />
+          )}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={renderEmpty}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={() => onNavigate('add')} activeOpacity={0.8}>
@@ -199,7 +199,8 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 26, fontWeight: '800', color: COLORS.white, letterSpacing: -0.5 },
   subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
-  settingsBtn: { padding: 6, marginTop: 2 },
+  headerActions: { flexDirection: 'row', gap: 4, marginTop: 2 },
+  headerBtn: { padding: 6 },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -213,20 +214,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)',
   },
   searchInput: { flex: 1, color: COLORS.white, fontSize: 14 },
-  toolbar: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 14 },
-  toolBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.card,
-  },
-  toolText: { fontSize: 12, fontWeight: '600', color: COLORS.dark },
   tabs: {
     flexDirection: 'row',
     marginHorizontal: 20,
@@ -249,6 +236,20 @@ const styles = StyleSheet.create({
   tabLabel: { fontSize: 13, fontWeight: '600', color: COLORS.gray },
   tabLabelActive: { color: COLORS.accent },
   list: { padding: 20, paddingBottom: 100 },
+  sectionHeader: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    marginBottom: 10,
+    marginTop: 8,
+  },
+  sectionHeaderText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: COLORS.gray,
+  },
   empty: { alignItems: 'center', paddingVertical: 60 },
   emptyIcon: { fontSize: 42, marginBottom: 12 },
   emptyTitle: { fontSize: 16, fontWeight: '600', color: COLORS.dark, marginBottom: 6 },
