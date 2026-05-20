@@ -13,181 +13,10 @@ import ContactCard from '../components/ContactCard';
 import { COLORS } from '../utils/constants';
 import { sortByName, sortByBirthday, isBirthdayToday } from '../utils/helpers';
 
-export default function HomeScreen({ contacts, fields, onNavigate, onRefresh, t }) {
-  const [search, setSearch] = useState('');
-  const [tab, setTab] = useState('contacts');
-
-  const birthdaysToday = contacts.filter((c) => isBirthdayToday(c.birthday));
-
-  const searchLower = search.toLowerCase();
-  const filtered = contacts.filter((c) => {
-    if (!search) return true;
-    return Object.values(c).some(
-      (v) => typeof v === 'string' && v.toLowerCase().includes(searchLower)
-    );
-  });
-
-  const withBirthday = filtered.filter((c) => !!c.birthday);
-  const withoutBirthday = filtered.filter((c) => !c.birthday);
-
-  const sorted =
-    tab === 'birthdays' ? sortByBirthday(filtered) : sortByName(filtered);
-
-  const renderBirthdayList = () => (
-    <>
-      {withBirthday.length === 0 && withoutBirthday.length === 0 && (
-        <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>🎂</Text>
-          <Text style={styles.emptyTitle}>{t.noBirthdaysTitle}</Text>
-          <Text style={styles.emptySub}>{t.noBirthdaysSub}</Text>
-        </View>
-      )}
-      {sortByBirthday(withBirthday).map((item) => (
-        <ContactCard
-          key={item.id}
-          contact={item}
-          onPress={() => onNavigate('detail', item)}
-          t={t}
-          birthdayMode
-        />
-      ))}
-      {withoutBirthday.length > 0 && (
-        <>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionHeaderText}>{t.noBirthdayContacts}</Text>
-          </View>
-          {sortByName(withoutBirthday).map((item) => (
-            <ContactCard
-              key={item.id}
-              contact={item}
-              onPress={() => onNavigate('detail', item)}
-              t={t}
-              birthdayMode
-            />
-          ))}
-        </>
-      )}
-    </>
-  );
-
-  const renderEmpty = () => (
-    <View style={styles.empty}>
-      <Text style={styles.emptyIcon}>{tab === 'birthdays' ? '🎂' : '👋'}</Text>
-      <Text style={styles.emptyTitle}>
-        {tab === 'birthdays'
-          ? t.noBirthdaysTitle
-          : search
-          ? t.noResultsTitle
-          : t.noContactsTitle}
-      </Text>
-      <Text style={styles.emptySub}>
-        {tab === 'birthdays'
-          ? t.noBirthdaysSub
-          : search
-          ? t.noResultsSub
-          : t.noContactsSub}
-      </Text>
-    </View>
-  );
-
-  return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>🎯 {t.appName}</Text>
-            <Text style={styles.subtitle}>
-              {t.contactCount(contacts.length)}
-              {birthdaysToday.length > 0
-                ? ` · 🎂 ${t.birthdayToday(birthdaysToday.length)}`
-                : ''}
-            </Text>
-          </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={() => onNavigate('map')}
-              style={styles.headerBtn}
-            >
-              <Ionicons name="map-outline" size={22} color="rgba(255,255,255,0.7)" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => onNavigate('settings')}
-              style={styles.headerBtn}
-            >
-              <Ionicons name="settings-outline" size={22} color="rgba(255,255,255,0.7)" />
-            </TouchableOpacity>
-          </View>
-        </View>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color="rgba(255,255,255,0.5)" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t.searchPlaceholder}
-            placeholderTextColor="rgba(255,255,255,0.35)"
-            value={search}
-            onChangeText={setSearch}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, tab === 'contacts' && styles.tabActive]}
-          onPress={() => setTab('contacts')}
-        >
-          <Ionicons name="people" size={16} color={tab === 'contacts' ? COLORS.accent : COLORS.gray} />
-          <Text style={[styles.tabLabel, tab === 'contacts' && styles.tabLabelActive]}>
-            {t.contacts}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, tab === 'birthdays' && styles.tabActive]}
-          onPress={() => setTab('birthdays')}
-        >
-          <Ionicons name="gift" size={16} color={tab === 'birthdays' ? COLORS.accent : COLORS.gray} />
-          <Text style={[styles.tabLabel, tab === 'birthdays' && styles.tabLabelActive]}>
-            {t.birthdays}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Contact List */}
-      {tab === 'birthdays' ? (
-        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-          {renderBirthdayList()}
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={sorted}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ContactCard contact={item} onPress={() => onNavigate('detail', item)} t={t} />
-          )}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={renderEmpty}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-
-      {/* FAB */}
-      <TouchableOpacity style={styles.fab} onPress={() => onNavigate('add')} activeOpacity={0.8}>
-        <Ionicons name="add" size={28} color={COLORS.white} />
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+const makeStyles = (COLORS) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
-    backgroundColor: COLORS.dark,
+    backgroundColor: COLORS.headerBg,
     paddingTop: 54,
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -197,10 +26,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  title: { fontSize: 26, fontWeight: '800', color: COLORS.white, letterSpacing: -0.5 },
+  titleWrap: { flex: 1 },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: COLORS.white,
+    fontFamily: 'serif',
+    fontStyle: 'italic',
+    letterSpacing: 0.5,
+  },
   subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
-  headerActions: { flexDirection: 'row', gap: 4, marginTop: 2 },
-  headerBtn: { padding: 6 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  mapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.accent,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  mapBtnText: { color: COLORS.white, fontSize: 12, fontWeight: '700' },
+  settingsBtn: { padding: 6 },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -271,3 +118,181 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
 });
+
+export default function HomeScreen({ contacts, fields, onNavigate, onRefresh, colors, t }) {
+  const C = colors || COLORS;
+  const styles = makeStyles(C);
+
+  const [search, setSearch] = useState('');
+  const [tab, setTab] = useState('contacts');
+
+  const birthdaysToday = contacts.filter((c) => isBirthdayToday(c.birthday));
+
+  const searchLower = search.toLowerCase();
+  const filtered = contacts.filter((c) => {
+    if (!search) return true;
+    return Object.values(c).some(
+      (v) => typeof v === 'string' && v.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const withBirthday = filtered.filter((c) => !!c.birthday);
+  const withoutBirthday = filtered.filter((c) => !c.birthday);
+
+  const sorted =
+    tab === 'birthdays' ? sortByBirthday(filtered) : sortByName(filtered);
+
+  const renderBirthdayList = () => (
+    <>
+      {withBirthday.length === 0 && withoutBirthday.length === 0 && (
+        <View style={styles.empty}>
+          <Text style={styles.emptyIcon}>🎂</Text>
+          <Text style={styles.emptyTitle}>{t.noBirthdaysTitle}</Text>
+          <Text style={styles.emptySub}>{t.noBirthdaysSub}</Text>
+        </View>
+      )}
+      {sortByBirthday(withBirthday).map((item) => (
+        <ContactCard
+          key={item.id}
+          contact={item}
+          onPress={() => onNavigate('detail', item)}
+          colors={C}
+          t={t}
+          birthdayMode
+        />
+      ))}
+      {withoutBirthday.length > 0 && (
+        <>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeaderText}>{t.noBirthdayContacts}</Text>
+          </View>
+          {sortByName(withoutBirthday).map((item) => (
+            <ContactCard
+              key={item.id}
+              contact={item}
+              onPress={() => onNavigate('detail', item)}
+              colors={C}
+              t={t}
+              birthdayMode
+            />
+          ))}
+        </>
+      )}
+    </>
+  );
+
+  const renderEmpty = () => (
+    <View style={styles.empty}>
+      <Text style={styles.emptyIcon}>{tab === 'birthdays' ? '🎂' : '👋'}</Text>
+      <Text style={styles.emptyTitle}>
+        {tab === 'birthdays'
+          ? t.noBirthdaysTitle
+          : search
+          ? t.noResultsTitle
+          : t.noContactsTitle}
+      </Text>
+      <Text style={styles.emptySub}>
+        {tab === 'birthdays'
+          ? t.noBirthdaysSub
+          : search
+          ? t.noResultsSub
+          : t.noContactsSub}
+      </Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerRow}>
+          <View style={styles.titleWrap}>
+            <Text style={styles.title}>{t.appName}</Text>
+            <Text style={styles.subtitle}>
+              {t.contactCount(contacts.length)}
+              {birthdaysToday.length > 0
+                ? ` · 🎂 ${t.birthdayToday(birthdaysToday.length)}`
+                : ''}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => onNavigate('map')}
+              style={styles.mapBtn}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="map" size={15} color={C.white} />
+              <Text style={styles.mapBtnText}>{t.map}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => onNavigate('settings')}
+              style={styles.settingsBtn}
+            >
+              <Ionicons name="settings-outline" size={22} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color="rgba(255,255,255,0.5)" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t.searchPlaceholder}
+            placeholderTextColor="rgba(255,255,255,0.35)"
+            value={search}
+            onChangeText={setSearch}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          style={[styles.tab, tab === 'contacts' && styles.tabActive]}
+          onPress={() => setTab('contacts')}
+        >
+          <Ionicons name="people" size={16} color={tab === 'contacts' ? C.accent : C.gray} />
+          <Text style={[styles.tabLabel, tab === 'contacts' && styles.tabLabelActive]}>
+            {t.contacts}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, tab === 'birthdays' && styles.tabActive]}
+          onPress={() => setTab('birthdays')}
+        >
+          <Ionicons name="gift" size={16} color={tab === 'birthdays' ? C.accent : C.gray} />
+          <Text style={[styles.tabLabel, tab === 'birthdays' && styles.tabLabelActive]}>
+            {t.birthdays}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Contact List */}
+      {tab === 'birthdays' ? (
+        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+          {renderBirthdayList()}
+        </ScrollView>
+      ) : (
+        <FlatList
+          data={sorted}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ContactCard contact={item} onPress={() => onNavigate('detail', item)} colors={C} t={t} />
+          )}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={renderEmpty}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      {/* FAB */}
+      <TouchableOpacity style={styles.fab} onPress={() => onNavigate('add')} activeOpacity={0.8}>
+        <Ionicons name="add" size={28} color={C.white} />
+      </TouchableOpacity>
+    </View>
+  );
+}

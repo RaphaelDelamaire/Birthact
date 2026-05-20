@@ -18,13 +18,15 @@ import {
   saveLanguage,
   loadDefaultCountry,
   saveDefaultCountry,
+  loadTheme,
+  saveTheme,
 } from './src/utils/storage';
 import {
   requestPermissions,
   configureNotifications,
   scheduleBirthdayNotifications,
 } from './src/utils/notifications';
-import { DEFAULT_FIELDS } from './src/utils/constants';
+import { DEFAULT_FIELDS, COLORS, DARK_COLORS } from './src/utils/constants';
 import { TRANSLATIONS } from './src/utils/i18n';
 
 LogBox.ignoreLogs(['Setting a timer']);
@@ -34,11 +36,13 @@ export default function App() {
   const [fields, setFields] = useState(DEFAULT_FIELDS);
   const [language, setLanguage] = useState('en');
   const [defaultCountry, setDefaultCountry] = useState('FR');
+  const [theme, setTheme] = useState('light');
   const [screen, setScreen] = useState('home');
   const [selectedContact, setSelectedContact] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const t = TRANSLATIONS[language] || TRANSLATIONS.en;
+  const colors = theme === 'dark' ? DARK_COLORS : COLORS;
 
   useEffect(() => {
     (async () => {
@@ -53,6 +57,7 @@ export default function App() {
           loadFields().catch(() => DEFAULT_FIELDS),
           loadLanguage().catch(() => 'en'),
           loadDefaultCountry().catch(() => 'FR'),
+          loadTheme().catch(() => 'light'),
         ]);
         loadedContacts = results[0] || [];
         loadedLang = results[2] || 'en';
@@ -60,6 +65,7 @@ export default function App() {
         setFields(results[1] || DEFAULT_FIELDS);
         setLanguage(loadedLang);
         setDefaultCountry(results[3] || 'FR');
+        setTheme(results[4] || 'light');
       } catch {}
 
       setLoading(false);
@@ -191,11 +197,16 @@ export default function App() {
     try { await saveDefaultCountry(code); } catch {}
   }, []);
 
+  const handleChangeTheme = useCallback(async (newTheme) => {
+    setTheme(newTheme);
+    try { await saveTheme(newTheme); } catch {}
+  }, []);
+
   if (loading) return null;
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A2E" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.headerBg} />
 
       {screen === 'home' && (
         <HomeScreen
@@ -203,6 +214,7 @@ export default function App() {
           fields={fields}
           onNavigate={navigate}
           onRefresh={refresh}
+          colors={colors}
           t={t}
         />
       )}
@@ -212,6 +224,7 @@ export default function App() {
           fields={fields}
           onSave={handleAddContact}
           onCancel={() => navigate('home')}
+          colors={colors}
           t={t}
         />
       )}
@@ -223,6 +236,7 @@ export default function App() {
           onSave={handleEditContact}
           onDelete={handleDeleteContact}
           onCancel={() => navigate('detail', selectedContact)}
+          colors={colors}
           t={t}
         />
       )}
@@ -233,6 +247,7 @@ export default function App() {
           fields={fields}
           onEdit={() => navigate('edit', selectedContact)}
           onBack={() => navigate('home')}
+          colors={colors}
           t={t}
         />
       )}
@@ -242,6 +257,7 @@ export default function App() {
           fields={fields}
           onSave={handleSaveFields}
           onCancel={() => navigate('settings')}
+          colors={colors}
           t={t}
         />
       )}
@@ -254,7 +270,10 @@ export default function App() {
           onNavigateFields={() => navigate('fields')}
           defaultCountry={defaultCountry}
           onChangeDefaultCountry={handleChangeDefaultCountry}
+          theme={theme}
+          onChangeTheme={handleChangeTheme}
           onRefresh={refresh}
+          colors={colors}
           t={t}
         />
       )}
@@ -263,6 +282,7 @@ export default function App() {
         <MapScreen
           contacts={contacts}
           onBack={() => navigate('home')}
+          colors={colors}
           t={t}
         />
       )}

@@ -10,6 +10,69 @@ import { COLORS } from '../utils/constants';
 import { exportData, importData } from '../utils/storage';
 import { COUNTRIES, getCountryByCode } from '../utils/countries';
 
+const makeStyles = (COLORS) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingTop: 54, paddingBottom: 14, paddingHorizontal: 16,
+    backgroundColor: COLORS.card, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  backBtn: { padding: 4, width: 40 },
+  title: { flex: 1, fontSize: 17, fontWeight: '700', textAlign: 'center', color: COLORS.dark },
+  body: { padding: 20 },
+  sectionTitle: {
+    fontSize: 12, fontWeight: '700', textTransform: 'uppercase',
+    letterSpacing: 1.2, color: COLORS.gray, marginBottom: 12,
+  },
+  option: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: COLORS.card, borderRadius: 12,
+    borderWidth: 1.5, borderColor: COLORS.border,
+    padding: 16, marginBottom: 10,
+  },
+  optionActive: { borderColor: COLORS.accent, backgroundColor: COLORS.accentLight },
+  optionFlag: { fontSize: 24 },
+  optionText: { flex: 1, fontSize: 16, fontWeight: '500', color: COLORS.dark },
+  optionTextActive: { fontWeight: '600', color: COLORS.accent },
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: COLORS.card, borderRadius: 12,
+    borderWidth: 1, borderColor: COLORS.border,
+    padding: 14, marginBottom: 10,
+  },
+  rowIcon: {
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: COLORS.accentLight,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  rowLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: COLORS.dark },
+  rowValue: { fontSize: 14, color: COLORS.gray, marginRight: 4 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: COLORS.background, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: '80%', paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: COLORS.dark },
+  modalSearch: {
+    margin: 16, backgroundColor: COLORS.card, borderRadius: 10,
+    borderWidth: 1.5, borderColor: COLORS.border,
+    paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: COLORS.dark,
+  },
+  countryRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 20, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  countryRowActive: { backgroundColor: COLORS.accentLight },
+  countryRowFlag: { fontSize: 22 },
+  countryRowName: { flex: 1, fontSize: 15, color: COLORS.dark },
+  countryRowDial: { fontSize: 13, color: COLORS.gray },
+});
+
 export default function SettingsScreen({
   language,
   onChangeLanguage,
@@ -17,9 +80,15 @@ export default function SettingsScreen({
   onNavigateFields,
   defaultCountry,
   onChangeDefaultCountry,
+  theme,
+  onChangeTheme,
   onRefresh,
+  colors,
   t,
 }) {
+  const C = colors || COLORS;
+  const styles = makeStyles(C);
+
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
   const currentCountry = getCountryByCode(defaultCountry || 'FR');
@@ -76,19 +145,26 @@ export default function SettingsScreen({
   const SettingRow = ({ icon, label, value, onPress, chevron = true }) => (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.rowIcon}>
-        <Ionicons name={icon} size={18} color={COLORS.accent} />
+        <Ionicons name={icon} size={18} color={C.accent} />
       </View>
       <Text style={styles.rowLabel}>{label}</Text>
       {value ? <Text style={styles.rowValue}>{value}</Text> : null}
-      {chevron && <Ionicons name="chevron-forward" size={16} color={COLORS.border} />}
+      {chevron && <Ionicons name="chevron-forward" size={16} color={C.border} />}
     </TouchableOpacity>
   );
+
+  const LANGUAGES = [
+    { code: 'en', flag: '🇬🇧', label: t.english },
+    { code: 'fr', flag: '🇫🇷', label: t.french },
+    { code: 'es', flag: '🇪🇸', label: t.spanish },
+    { code: 'de', flag: '🇩🇪', label: t.german },
+  ];
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.dark} />
+          <Ionicons name="chevron-back" size={24} color={C.dark} />
         </TouchableOpacity>
         <Text style={styles.title}>{t.settings}</Text>
         <View style={{ width: 40 }} />
@@ -97,31 +173,46 @@ export default function SettingsScreen({
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
         {/* Language */}
         <Text style={styles.sectionTitle}>{t.language}</Text>
+        {LANGUAGES.map((lang) => (
+          <TouchableOpacity
+            key={lang.code}
+            style={[styles.option, language === lang.code && styles.optionActive]}
+            onPress={() => onChangeLanguage(lang.code)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.optionFlag}>{lang.flag}</Text>
+            <Text style={[styles.optionText, language === lang.code && styles.optionTextActive]}>
+              {lang.label}
+            </Text>
+            {language === lang.code && (
+              <Ionicons name="checkmark-circle" size={22} color={C.accent} />
+            )}
+          </TouchableOpacity>
+        ))}
+
+        {/* Appearance */}
+        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>{t.appearance}</Text>
         <TouchableOpacity
-          style={[styles.option, language === 'en' && styles.optionActive]}
-          onPress={() => onChangeLanguage('en')}
+          style={[styles.option, theme !== 'dark' && styles.optionActive]}
+          onPress={() => onChangeTheme('light')}
           activeOpacity={0.7}
         >
-          <Text style={styles.optionFlag}>🇬🇧</Text>
-          <Text style={[styles.optionText, language === 'en' && styles.optionTextActive]}>
-            {t.english}
+          <Ionicons name="sunny-outline" size={24} color={theme !== 'dark' ? C.accent : C.gray} />
+          <Text style={[styles.optionText, theme !== 'dark' && styles.optionTextActive]}>
+            {t.lightMode}
           </Text>
-          {language === 'en' && (
-            <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} />
-          )}
+          {theme !== 'dark' && <Ionicons name="checkmark-circle" size={22} color={C.accent} />}
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.option, language === 'fr' && styles.optionActive]}
-          onPress={() => onChangeLanguage('fr')}
+          style={[styles.option, theme === 'dark' && styles.optionActive]}
+          onPress={() => onChangeTheme('dark')}
           activeOpacity={0.7}
         >
-          <Text style={styles.optionFlag}>🇫🇷</Text>
-          <Text style={[styles.optionText, language === 'fr' && styles.optionTextActive]}>
-            {t.french}
+          <Ionicons name="moon-outline" size={24} color={theme === 'dark' ? C.accent : C.gray} />
+          <Text style={[styles.optionText, theme === 'dark' && styles.optionTextActive]}>
+            {t.darkMode}
           </Text>
-          {language === 'fr' && (
-            <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} />
-          )}
+          {theme === 'dark' && <Ionicons name="checkmark-circle" size={22} color={C.accent} />}
         </TouchableOpacity>
 
         {/* Phone default country */}
@@ -165,13 +256,13 @@ export default function SettingsScreen({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t.selectCountry}</Text>
               <TouchableOpacity onPress={() => { setCountryModalVisible(false); setCountrySearch(''); }}>
-                <Ionicons name="close" size={24} color={COLORS.dark} />
+                <Ionicons name="close" size={24} color={C.dark} />
               </TouchableOpacity>
             </View>
             <TextInput
               style={styles.modalSearch}
               placeholder="Rechercher..."
-              placeholderTextColor={COLORS.grayLight}
+              placeholderTextColor={C.grayLight}
               value={countrySearch}
               onChangeText={setCountrySearch}
               autoFocus
@@ -189,7 +280,7 @@ export default function SettingsScreen({
                   <Text style={styles.countryRowName}>{item.name}</Text>
                   <Text style={styles.countryRowDial}>{item.dialCode}</Text>
                   {currentCountry.code === item.code && (
-                    <Ionicons name="checkmark-circle" size={18} color={COLORS.accent} />
+                    <Ionicons name="checkmark-circle" size={18} color={C.accent} />
                   )}
                 </TouchableOpacity>
               )}
@@ -201,67 +292,3 @@ export default function SettingsScreen({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingTop: 54, paddingBottom: 14, paddingHorizontal: 16,
-    backgroundColor: COLORS.card, borderBottomWidth: 1, borderBottomColor: COLORS.border,
-  },
-  backBtn: { padding: 4, width: 40 },
-  title: { flex: 1, fontSize: 17, fontWeight: '700', textAlign: 'center', color: COLORS.dark },
-  body: { padding: 20 },
-  sectionTitle: {
-    fontSize: 12, fontWeight: '700', textTransform: 'uppercase',
-    letterSpacing: 1.2, color: COLORS.gray, marginBottom: 12,
-  },
-  option: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: COLORS.card, borderRadius: 12,
-    borderWidth: 1.5, borderColor: COLORS.border,
-    padding: 16, marginBottom: 10,
-  },
-  optionActive: { borderColor: COLORS.accent, backgroundColor: COLORS.accentLight },
-  optionFlag: { fontSize: 24 },
-  optionText: { flex: 1, fontSize: 16, fontWeight: '500', color: COLORS.dark },
-  optionTextActive: { fontWeight: '600', color: COLORS.accent },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: COLORS.card, borderRadius: 12,
-    borderWidth: 1, borderColor: COLORS.border,
-    padding: 14, marginBottom: 10,
-  },
-  rowIcon: {
-    width: 32, height: 32, borderRadius: 8,
-    backgroundColor: COLORS.accentLight,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  rowLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: COLORS.dark },
-  rowValue: { fontSize: 14, color: COLORS.gray, marginRight: 4 },
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalSheet: {
-    backgroundColor: COLORS.background, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    maxHeight: '80%', paddingBottom: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border,
-  },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: COLORS.dark },
-  modalSearch: {
-    margin: 16, backgroundColor: COLORS.card, borderRadius: 10,
-    borderWidth: 1.5, borderColor: COLORS.border,
-    paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: COLORS.dark,
-  },
-  countryRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: COLORS.border,
-  },
-  countryRowActive: { backgroundColor: COLORS.accentLight },
-  countryRowFlag: { fontSize: 22 },
-  countryRowName: { flex: 1, fontSize: 15, color: COLORS.dark },
-  countryRowDial: { fontSize: 13, color: COLORS.gray },
-});

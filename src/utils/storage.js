@@ -37,17 +37,26 @@ export async function loadFields() {
 
     const stored = JSON.parse(data);
     const storedIds = new Set(stored.map((f) => f.id));
-    const missing = DEFAULT_FIELDS.filter((f) => !storedIds.has(f.id));
-    if (missing.length === 0) return stored;
-
-    // Rebuild list: default fields in order, then custom fields at the end
     const defaultIds = new Set(DEFAULT_FIELDS.map((f) => f.id));
     const custom = stored.filter((f) => !defaultIds.has(f.id));
+
+    // Rebuild with DEFAULT_FIELDS order; always use canonical removable value
     const merged = [
-      ...DEFAULT_FIELDS.map((f) => stored.find((s) => s.id === f.id) || f),
+      ...DEFAULT_FIELDS.map((f) => {
+        const s = stored.find((sf) => sf.id === f.id);
+        return s ? { ...s, removable: f.removable } : f;
+      }),
       ...custom,
     ];
-    await saveFields(merged);
+
+    const missing = DEFAULT_FIELDS.filter((f) => !storedIds.has(f.id));
+    const removableChanged = DEFAULT_FIELDS.some((f) => {
+      const s = stored.find((sf) => sf.id === f.id);
+      return s && s.removable !== f.removable;
+    });
+    if (missing.length > 0 || removableChanged) {
+      await saveFields(merged);
+    }
     return merged;
   } catch (e) {
     console.error('Error loading fields:', e);
@@ -109,6 +118,29 @@ export async function saveDefaultCountry(code) {
     await AsyncStorage.setItem(STORAGE_KEYS.defaultCountry, code);
   } catch (e) {
     console.error('Error saving default country:', e);
+  }
+}
+
+/**
+ * Load app theme. Defaults to 'light'.
+ */
+export async function loadTheme() {
+  try {
+    const val = await AsyncStorage.getItem(STORAGE_KEYS.theme);
+    return val || 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+/**
+ * Save app theme.
+ */
+export async function saveTheme(theme) {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.theme, theme);
+  } catch (e) {
+    console.error('Error saving theme:', e);
   }
 }
 

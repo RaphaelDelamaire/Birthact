@@ -7,116 +7,7 @@ import { COLORS } from '../utils/constants';
 import { generateId } from '../utils/helpers';
 import { getFieldLabel, getTypeLabel } from '../utils/i18n';
 
-export default function FieldManagerScreen({ fields, onSave, onCancel, t }) {
-  const [localFields, setLocalFields] = useState(fields);
-  const [newLabel, setNewLabel] = useState('');
-  const [newType, setNewType] = useState('text');
-
-  const FIELD_TYPES = [
-    { value: 'text', label: t.typeText },
-    { value: 'phone', label: t.typePhone },
-    { value: 'email', label: t.typeEmail },
-    { value: 'date', label: t.typeDate },
-    { value: 'url', label: t.typeUrl },
-    { value: 'multiline', label: t.typeMultiline },
-  ];
-
-  const addField = () => {
-    if (!newLabel.trim()) {
-      Alert.alert(t.fieldNameRequired, t.fieldNameRequiredMsg);
-      return;
-    }
-    const id = 'custom_' + generateId();
-    setLocalFields([...localFields, { id, label: newLabel.trim(), type: newType, removable: true }]);
-    setNewLabel('');
-    setNewType('text');
-  };
-
-  const removeField = (id) => {
-    Alert.alert(t.deleteFieldTitle, t.deleteFieldMsg, [
-      { text: t.cancel, style: 'cancel' },
-      {
-        text: t.delete,
-        style: 'destructive',
-        onPress: () => setLocalFields(localFields.filter((f) => f.id !== id)),
-      },
-    ]);
-  };
-
-  const resolveLabel = (field) => getFieldLabel(field.id, t) || field.label;
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onCancel} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.dark} />
-        </TouchableOpacity>
-        <Text style={styles.title}>{t.manageFields}</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>{t.currentFields}</Text>
-        {localFields.map((f) => (
-          <View key={f.id} style={styles.fieldRow}>
-            <View style={styles.fieldInfo}>
-              <Text style={styles.fieldLabel}>{resolveLabel(f)}</Text>
-              <Text style={styles.fieldType}>{getTypeLabel(f.type, t)}</Text>
-            </View>
-            {f.removable ? (
-              <TouchableOpacity onPress={() => removeField(f.id)} style={styles.removeBtn}>
-                <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.lockBadge}>
-                <Ionicons name="lock-closed" size={12} color={COLORS.grayLight} />
-              </View>
-            )}
-          </View>
-        ))}
-
-        <Text style={[styles.sectionTitle, { marginTop: 28 }]}>{t.addField}</Text>
-        <Text style={styles.label}>{t.fieldName}</Text>
-        <TextInput
-          style={styles.input}
-          value={newLabel}
-          onChangeText={setNewLabel}
-          placeholder={t.fieldNamePlaceholder}
-          placeholderTextColor={COLORS.grayLight}
-        />
-
-        <Text style={styles.label}>{t.fieldType}</Text>
-        <View style={styles.typeGrid}>
-          {FIELD_TYPES.map((ft) => (
-            <TouchableOpacity
-              key={ft.value}
-              style={[styles.typeChip, newType === ft.value && styles.typeChipActive]}
-              onPress={() => setNewType(ft.value)}
-            >
-              <Text style={[styles.typeChipText, newType === ft.value && styles.typeChipTextActive]}>
-                {ft.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <TouchableOpacity style={styles.addBtn} onPress={addField} activeOpacity={0.8}>
-          <Ionicons name="add" size={18} color={COLORS.white} />
-          <Text style={styles.addBtnText}>{t.addThisField}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.saveBtn} onPress={() => onSave(localFields)} activeOpacity={0.8}>
-          <Ionicons name="checkmark" size={20} color={COLORS.white} />
-          <Text style={styles.saveBtnText}>{t.saveFields}</Text>
-        </TouchableOpacity>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+const makeStyles = (COLORS) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row', alignItems: 'center',
@@ -168,3 +59,115 @@ const styles = StyleSheet.create({
   },
   saveBtnText: { color: COLORS.white, fontSize: 15, fontWeight: '700' },
 });
+
+export default function FieldManagerScreen({ fields, onSave, onCancel, colors, t }) {
+  const C = colors || COLORS;
+  const styles = makeStyles(C);
+  const [localFields, setLocalFields] = useState(fields);
+  const [newLabel, setNewLabel] = useState('');
+  const [newType, setNewType] = useState('text');
+
+  const FIELD_TYPES = [
+    { value: 'text', label: t.typeText },
+    { value: 'phone', label: t.typePhone },
+    { value: 'email', label: t.typeEmail },
+    { value: 'date', label: t.typeDate },
+    { value: 'url', label: t.typeUrl },
+    { value: 'multiline', label: t.typeMultiline },
+  ];
+
+  const addField = () => {
+    if (!newLabel.trim()) {
+      Alert.alert(t.fieldNameRequired, t.fieldNameRequiredMsg);
+      return;
+    }
+    const id = 'custom_' + generateId();
+    setLocalFields([...localFields, { id, label: newLabel.trim(), type: newType, removable: true }]);
+    setNewLabel('');
+    setNewType('text');
+  };
+
+  const removeField = (id) => {
+    Alert.alert(t.deleteFieldTitle, t.deleteFieldMsg, [
+      { text: t.cancel, style: 'cancel' },
+      {
+        text: t.delete,
+        style: 'destructive',
+        onPress: () => setLocalFields(localFields.filter((f) => f.id !== id)),
+      },
+    ]);
+  };
+
+  const resolveLabel = (field) => getFieldLabel(field.id, t) || field.label;
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onCancel} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={24} color={C.dark} />
+        </TouchableOpacity>
+        <Text style={styles.title}>{t.manageFields}</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+        <Text style={styles.sectionTitle}>{t.currentFields}</Text>
+        {localFields.map((f) => (
+          <View key={f.id} style={styles.fieldRow}>
+            <View style={styles.fieldInfo}>
+              <Text style={styles.fieldLabel}>{resolveLabel(f)}</Text>
+              <Text style={styles.fieldType}>{getTypeLabel(f.type, t)}</Text>
+            </View>
+            {f.removable ? (
+              <TouchableOpacity onPress={() => removeField(f.id)} style={styles.removeBtn}>
+                <Ionicons name="trash-outline" size={16} color={C.danger} />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.lockBadge}>
+                <Ionicons name="lock-closed" size={12} color={C.grayLight} />
+              </View>
+            )}
+          </View>
+        ))}
+
+        <Text style={[styles.sectionTitle, { marginTop: 28 }]}>{t.addField}</Text>
+        <Text style={styles.label}>{t.fieldName}</Text>
+        <TextInput
+          style={styles.input}
+          value={newLabel}
+          onChangeText={setNewLabel}
+          placeholder={t.fieldNamePlaceholder}
+          placeholderTextColor={C.grayLight}
+        />
+
+        <Text style={styles.label}>{t.fieldType}</Text>
+        <View style={styles.typeGrid}>
+          {FIELD_TYPES.map((ft) => (
+            <TouchableOpacity
+              key={ft.value}
+              style={[styles.typeChip, newType === ft.value && styles.typeChipActive]}
+              onPress={() => setNewType(ft.value)}
+            >
+              <Text style={[styles.typeChipText, newType === ft.value && styles.typeChipTextActive]}>
+                {ft.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity style={styles.addBtn} onPress={addField} activeOpacity={0.8}>
+          <Ionicons name="add" size={18} color={C.white} />
+          <Text style={styles.addBtnText}>{t.addThisField}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.saveBtn} onPress={() => onSave(localFields)} activeOpacity={0.8}>
+          <Ionicons name="checkmark" size={20} color={C.white} />
+          <Text style={styles.saveBtnText}>{t.saveFields}</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
+  );
+}
+

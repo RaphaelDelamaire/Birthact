@@ -81,12 +81,12 @@ body{margin:0;padding:0}
 <button id="locbtn" onclick="reqLoc()">📍</button>
 <script>
 var map=L.map('map',{zoomControl:true}).setView([20,10],2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  attribution:'&copy; OpenStreetMap',maxZoom:18
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+  attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19,subdomains:'abcd'
 }).addTo(map);
 
 var cluster=L.markerClusterGroup({
-  maxClusterRadius:50,
+  maxClusterRadius:25,
   spiderfyOnMaxZoom:true,
   showCoverageOnHover:false,
   iconCreateFunction:function(c){
@@ -117,7 +117,8 @@ function reqLoc(){
 </html>`;
 }
 
-export default function MapScreen({ contacts, onBack, t }) {
+export default function MapScreen({ contacts, onBack, colors, t }) {
+  const C = colors || COLORS;
   const [markers, setMarkers] = useState(null);
   const [loading, setLoading] = useState(true);
   const userCoordsRef = useRef(null);
@@ -209,12 +210,13 @@ export default function MapScreen({ contacts, onBack, t }) {
   };
 
   const noCities = contacts.every((c) => !c.city);
+  const styles = makeStyles(C);
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.dark} />
+          <Ionicons name="chevron-back" size={24} color={C.dark} />
         </TouchableOpacity>
         <Text style={styles.title}>{t.mapTitle}</Text>
         <View style={{ width: 40 }} />
@@ -228,7 +230,7 @@ export default function MapScreen({ contacts, onBack, t }) {
         </View>
       ) : loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.accent} />
+          <ActivityIndicator size="large" color={C.accent} />
           <Text style={styles.loadingText}>{t.mapGeocoding}</Text>
         </View>
       ) : markers && markers.length > 0 ? (
@@ -254,7 +256,7 @@ export default function MapScreen({ contacts, onBack, t }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row', alignItems: 'center',

@@ -5,107 +5,7 @@ import { COLORS } from '../utils/constants';
 import { isBirthdayToday, formatDate, getAge, getInitials } from '../utils/helpers';
 import { getFieldLabel } from '../utils/i18n';
 
-export default function ContactDetailScreen({ contact, fields, onEdit, onBack, t }) {
-  const isToday = isBirthdayToday(contact.birthday);
-  const age = getAge(contact.birthday);
-  const initials = getInitials(contact.firstName, contact.lastName);
-
-  const cleanPhone = contact.phone ? contact.phone.replace(/\s/g, '') : null;
-  const handleCall = () => { if (cleanPhone) Linking.openURL(`tel:${cleanPhone}`); };
-  const handleSMS = () => { if (cleanPhone) Linking.openURL(`sms:${cleanPhone}`); };
-  const handleEmail = () => { if (contact.email) Linking.openURL(`mailto:${contact.email}`); };
-
-  const resolveLabel = (field) => getFieldLabel(field.id, t) || field.label;
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.dark} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.contact}</Text>
-        <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
-          <Ionicons name="create-outline" size={22} color={COLORS.accent} />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.profile}>
-          <View style={[styles.avatar, isToday && styles.avatarBirthday]}>
-            {contact.photo ? (
-              <Image source={{ uri: contact.photo }} style={styles.avatarImage} />
-            ) : (
-              <Text style={styles.avatarText}>{initials}</Text>
-            )}
-          </View>
-          <Text style={styles.name}>
-            {contact.firstName} {contact.lastName}
-          </Text>
-          {!!contact.job && (
-            <Text style={styles.jobLine}>
-              {contact.job}{contact.company ? ` · ${contact.company}` : ''}
-            </Text>
-          )}
-          {isToday && (
-            <View style={styles.birthdayBadge}>
-              <Ionicons name="gift" size={14} color={COLORS.dark} />
-              <Text style={styles.birthdayText}>
-                {t.happyBirthday}{age !== null ? ` ${t.yearsOld(age)}` : ''}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {(contact.phone || contact.email) && (
-          <View style={styles.actions}>
-            {!!contact.phone && (
-              <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
-                <Ionicons name="call" size={20} color={COLORS.accent} />
-                <Text style={styles.actionLabel}>{t.call}</Text>
-              </TouchableOpacity>
-            )}
-            {!!contact.phone && (
-              <TouchableOpacity style={styles.actionBtn} onPress={handleSMS}>
-                <Ionicons name="chatbubble" size={20} color={COLORS.accent} />
-                <Text style={styles.actionLabel}>{t.sms}</Text>
-              </TouchableOpacity>
-            )}
-            {!!contact.email && (
-              <TouchableOpacity style={styles.actionBtn} onPress={handleEmail}>
-                <Ionicons name="mail" size={20} color={COLORS.accent} />
-                <Text style={styles.actionLabel}>{t.email}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        <View style={styles.details}>
-          {fields.map((field) => {
-            const val = contact[field.id];
-            if (!val) return null;
-            if (field.id === 'firstName' || field.id === 'lastName') return null;
-
-            let display = val;
-            if (field.id === 'birthday') {
-              display = formatDate(val) + (age !== null ? ` (${t.yearsOld(age)})` : '');
-            }
-
-            return (
-              <View key={field.id} style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{resolveLabel(field)}</Text>
-                <Text style={styles.detailValue}>{display}</Text>
-              </View>
-            );
-          })}
-        </View>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+const makeStyles = (COLORS) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row', alignItems: 'center',
@@ -152,3 +52,106 @@ const styles = StyleSheet.create({
   },
   detailValue: { fontSize: 15, color: COLORS.dark },
 });
+
+export default function ContactDetailScreen({ contact, fields, onEdit, onBack, colors, t }) {
+  const C = colors || COLORS;
+  const styles = makeStyles(C);
+  const isToday = isBirthdayToday(contact.birthday);
+  const age = getAge(contact.birthday);
+  const initials = getInitials(contact.firstName, contact.lastName);
+
+  const cleanPhone = contact.phone ? contact.phone.replace(/\s/g, '') : null;
+  const handleCall = () => { if (cleanPhone) Linking.openURL(`tel:${cleanPhone}`); };
+  const handleSMS = () => { if (cleanPhone) Linking.openURL(`sms:${cleanPhone}`); };
+  const handleEmail = () => { if (contact.email) Linking.openURL(`mailto:${contact.email}`); };
+
+  const resolveLabel = (field) => getFieldLabel(field.id, t) || field.label;
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={24} color={C.dark} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{t.contact}</Text>
+        <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
+          <Ionicons name="create-outline" size={22} color={C.accent} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.profile}>
+          <View style={[styles.avatar, isToday && styles.avatarBirthday]}>
+            {contact.photo ? (
+              <Image source={{ uri: contact.photo }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>{initials}</Text>
+            )}
+          </View>
+          <Text style={styles.name}>
+            {contact.firstName} {contact.lastName}
+          </Text>
+          {!!contact.job && (
+            <Text style={styles.jobLine}>
+              {contact.job}{contact.company ? ` · ${contact.company}` : ''}
+            </Text>
+          )}
+          {isToday && (
+            <View style={styles.birthdayBadge}>
+              <Ionicons name="gift" size={14} color={C.dark} />
+              <Text style={styles.birthdayText}>
+                {t.happyBirthday}{age !== null ? ` ${t.yearsOld(age)}` : ''}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {(contact.phone || contact.email) && (
+          <View style={styles.actions}>
+            {!!contact.phone && (
+              <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
+                <Ionicons name="call" size={20} color={C.accent} />
+                <Text style={styles.actionLabel}>{t.call}</Text>
+              </TouchableOpacity>
+            )}
+            {!!contact.phone && (
+              <TouchableOpacity style={styles.actionBtn} onPress={handleSMS}>
+                <Ionicons name="chatbubble" size={20} color={C.accent} />
+                <Text style={styles.actionLabel}>{t.sms}</Text>
+              </TouchableOpacity>
+            )}
+            {!!contact.email && (
+              <TouchableOpacity style={styles.actionBtn} onPress={handleEmail}>
+                <Ionicons name="mail" size={20} color={C.accent} />
+                <Text style={styles.actionLabel}>{t.email}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        <View style={styles.details}>
+          {fields.map((field) => {
+            const val = contact[field.id];
+            if (!val) return null;
+            if (field.id === 'firstName' || field.id === 'lastName') return null;
+
+            let display = val;
+            if (field.id === 'birthday') {
+              display = formatDate(val) + (age !== null ? ` (${t.yearsOld(age)})` : '');
+            }
+
+            return (
+              <View key={field.id} style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{resolveLabel(field)}</Text>
+                <Text style={styles.detailValue}>{display}</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
+  );
+}
+

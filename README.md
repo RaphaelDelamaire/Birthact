@@ -13,13 +13,14 @@ A personal networking app for Android. Keep track of the people you meet, never 
 - **Custom fields** — Add your own categories (LinkedIn URL, hobby, relationship context, etc.)
 - **Birthday notifications** — Native Android notification at 9 AM on each contact's birthday
 - **Date input** — Dates auto-format as you type digits (DD/MM/YYYY)
-- **Phone with country picker** — Select a country (flag + dial code) for each phone number; default country configurable in settings
+- **Phone with country picker** — Select a country (flag + dial code) for each phone number; 120+ countries; default country configurable in settings
 - **Global search** — Search across all fields instantly
 - **Birthday tab** — Contacts sorted by upcoming birthday; contacts without a birthday shown at the bottom
-- **World map** — Interactive map showing your contacts' cities with automatic clustering. Uses OpenStreetMap (no API key required)
+- **World map** — Interactive map (CartoDB Positron tiles) showing your contacts' addresses with per-person pins and automatic clustering. Uses OpenStreetMap (no API key required)
 - **Export / Import (JSON)** — Full backup and restore, including photos and custom fields
 - **Quick actions** — Call, text, or email directly from a contact's profile
-- **Bilingual UI** — English and French, switchable from settings
+- **Multilingual UI** — English, French, Spanish, German; switchable from settings
+- **Dark mode** — Toggle between light and dark theme in settings
 - **Android back button** — Hardware back button works throughout the app
 
 ---
@@ -242,4 +243,4 @@ Birthact/
 
 ---
 
-Designed by Raphaël · Code assisted by Claude (Anthropic) · Birthact v1.1.0
+Designed by Raphaël · Code assisted by Claude (Anthropic) · Birthact v1.2.0

@@ -4,83 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../utils/constants';
 import { isBirthdayToday, isBirthdaySoon, daysUntilBirthday, getInitials, dateToDisplay } from '../utils/helpers';
 
-export default function ContactCard({ contact, onPress, t, birthdayMode = false }) {
-  const isToday = isBirthdayToday(contact.birthday);
-  const soon = !isToday && isBirthdaySoon(contact.birthday);
-  const days = daysUntilBirthday(contact.birthday);
-  const initials = getInitials(contact.firstName, contact.lastName);
-
-  const renderMeta = () => {
-    if (birthdayMode) {
-      if (!contact.birthday) return null;
-      return (
-        <View style={styles.metaItem}>
-          <Ionicons name="gift-outline" size={12} color={COLORS.gray} />
-          <Text style={styles.metaText} numberOfLines={1}>{dateToDisplay(contact.birthday)}</Text>
-        </View>
-      );
-    }
-    return (
-      <>
-        {!!contact.job && (
-          <View style={styles.metaItem}>
-            <Ionicons name="briefcase-outline" size={12} color={COLORS.gray} />
-            <Text style={styles.metaText} numberOfLines={1}>{contact.job}</Text>
-          </View>
-        )}
-        {!!contact.city && (
-          <View style={styles.metaItem}>
-            <Ionicons name="map-outline" size={12} color={COLORS.gray} />
-            <Text style={styles.metaText} numberOfLines={1}>{contact.city}</Text>
-          </View>
-        )}
-      </>
-    );
-  };
-
-  return (
-    <TouchableOpacity
-      style={[styles.card, isToday && styles.cardBirthday]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.avatar, isToday && styles.avatarBirthday]}>
-        {contact.photo ? (
-          <Image source={{ uri: contact.photo }} style={styles.avatarImage} />
-        ) : (
-          <Text style={styles.avatarText}>{initials}</Text>
-        )}
-      </View>
-      <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
-          {contact.firstName} {contact.lastName}
-        </Text>
-        <View style={styles.meta}>
-          {renderMeta()}
-        </View>
-        {isToday && (
-          <View style={styles.badgeRow}>
-            <View style={styles.badgeToday}>
-              <Ionicons name="gift" size={11} color={COLORS.dark} />
-              <Text style={styles.badgeText}>{t.birthdayTodayBadge}</Text>
-            </View>
-          </View>
-        )}
-        {soon && (
-          <View style={styles.badgeRow}>
-            <View style={styles.badgeSoon}>
-              <Ionicons name="gift-outline" size={11} color={COLORS.dark} />
-              <Text style={styles.badgeText}>{t.birthdayInDays(days)}</Text>
-            </View>
-          </View>
-        )}
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={COLORS.border} />
-    </TouchableOpacity>
-  );
-}
-
-const styles = StyleSheet.create({
+const makeStyles = (COLORS) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -158,3 +82,81 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: 10, fontWeight: '700', color: COLORS.dark },
 });
+
+export default function ContactCard({ contact, onPress, colors, t, birthdayMode = false }) {
+  const C = colors || COLORS;
+  const styles = makeStyles(C);
+  const isToday = isBirthdayToday(contact.birthday);
+  const soon = !isToday && isBirthdaySoon(contact.birthday);
+  const days = daysUntilBirthday(contact.birthday);
+  const initials = getInitials(contact.firstName, contact.lastName);
+
+  const renderMeta = () => {
+    if (birthdayMode) {
+      if (!contact.birthday) return null;
+      return (
+        <View style={styles.metaItem}>
+          <Ionicons name="gift-outline" size={12} color={C.gray} />
+          <Text style={styles.metaText} numberOfLines={1}>{dateToDisplay(contact.birthday)}</Text>
+        </View>
+      );
+    }
+    return (
+      <>
+        {!!contact.job && (
+          <View style={styles.metaItem}>
+            <Ionicons name="briefcase-outline" size={12} color={C.gray} />
+            <Text style={styles.metaText} numberOfLines={1}>{contact.job}</Text>
+          </View>
+        )}
+        {!!contact.city && (
+          <View style={styles.metaItem}>
+            <Ionicons name="map-outline" size={12} color={C.gray} />
+            <Text style={styles.metaText} numberOfLines={1}>{contact.city}</Text>
+          </View>
+        )}
+      </>
+    );
+  };
+
+  return (
+    <TouchableOpacity
+      style={[styles.card, isToday && styles.cardBirthday]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.avatar, isToday && styles.avatarBirthday]}>
+        {contact.photo ? (
+          <Image source={{ uri: contact.photo }} style={styles.avatarImage} />
+        ) : (
+          <Text style={styles.avatarText}>{initials}</Text>
+        )}
+      </View>
+      <View style={styles.info}>
+        <Text style={styles.name} numberOfLines={1}>
+          {contact.firstName} {contact.lastName}
+        </Text>
+        <View style={styles.meta}>
+          {renderMeta()}
+        </View>
+        {isToday && (
+          <View style={styles.badgeRow}>
+            <View style={styles.badgeToday}>
+              <Ionicons name="gift" size={11} color={C.dark} />
+              <Text style={styles.badgeText}>{t.birthdayTodayBadge}</Text>
+            </View>
+          </View>
+        )}
+        {soon && (
+          <View style={styles.badgeRow}>
+            <View style={styles.badgeSoon}>
+              <Ionicons name="gift-outline" size={11} color={C.dark} />
+              <Text style={styles.badgeText}>{t.birthdayInDays(days)}</Text>
+            </View>
+          </View>
+        )}
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={C.border} />
+    </TouchableOpacity>
+  );
+}
