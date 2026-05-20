@@ -27,11 +27,28 @@ export async function saveContacts(contacts) {
 
 /**
  * Load custom fields from storage.
+ * Always merges with DEFAULT_FIELDS so new default fields (e.g. city)
+ * appear automatically after an app update.
  */
 export async function loadFields() {
   try {
     const data = await AsyncStorage.getItem(STORAGE_KEYS.fields);
-    return data ? JSON.parse(data) : DEFAULT_FIELDS;
+    if (!data) return DEFAULT_FIELDS;
+
+    const stored = JSON.parse(data);
+    const storedIds = new Set(stored.map((f) => f.id));
+    const missing = DEFAULT_FIELDS.filter((f) => !storedIds.has(f.id));
+    if (missing.length === 0) return stored;
+
+    // Rebuild list: default fields in order, then custom fields at the end
+    const defaultIds = new Set(DEFAULT_FIELDS.map((f) => f.id));
+    const custom = stored.filter((f) => !defaultIds.has(f.id));
+    const merged = [
+      ...DEFAULT_FIELDS.map((f) => stored.find((s) => s.id === f.id) || f),
+      ...custom,
+    ];
+    await saveFields(merged);
+    return merged;
   } catch (e) {
     console.error('Error loading fields:', e);
     return DEFAULT_FIELDS;

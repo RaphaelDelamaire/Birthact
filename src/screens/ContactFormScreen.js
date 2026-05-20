@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Image,
   Modal,
   FlatList,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,6 +19,92 @@ import { generateId, getInitials, dateToDisplay, displayToISO, formatDateInput }
 import { getFieldLabel } from '../utils/i18n';
 import { COUNTRIES, getCountryByCode } from '../utils/countries';
 import { loadDefaultCountry } from '../utils/storage';
+
+function CityInput({ value, onChange, placeholder }) {
+  const [query, setQuery] = useState(value || '');
+  const [suggestions, setSuggestions] = useState([]);
+  const timer = useRef(null);
+
+  useEffect(() => {
+    setQuery(value || '');
+  }, [value]);
+
+  useEffect(() => {
+    return () => { if (timer.current) clearTimeout(timer.current); };
+  }, []);
+
+  const search = async (text) => {
+    if (text.length < 2) { setSuggestions([]); return; }
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&limit=5&addressdetails=1&accept-language=fr`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'Birthact/1.0' } });
+      const data = await res.json();
+      const seen = new Set();
+      const results = [];
+      for (const item of data) {
+        const a = item.address || {};
+        const city = a.city || a.town || a.village || a.municipality || a.county || item.name;
+        const region = a.state || a.county || '';
+        const country = a.country || '';
+        const key = `${city}|${country}`;
+        if (city && !seen.has(key)) {
+          seen.add(key);
+          results.push({ id: item.place_id, city, region, country });
+        }
+      }
+      setSuggestions(results);
+    } catch {
+      setSuggestions([]);
+    }
+  };
+
+  const handleChange = (text) => {
+    setQuery(text);
+    onChange(text);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => search(text), 400);
+  };
+
+  const select = (s) => {
+    setQuery(s.city);
+    onChange(s.city);
+    setSuggestions([]);
+    Keyboard.dismiss();
+  };
+
+  return (
+    <View>
+      <TextInput
+        style={styles.input}
+        value={query}
+        onChangeText={handleChange}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.grayLight}
+        autoCapitalize="words"
+      />
+      {suggestions.length > 0 && (
+        <View style={styles.suggestionBox}>
+          {suggestions.map((s) => (
+            <TouchableOpacity
+              key={s.id}
+              style={styles.suggestionRow}
+              onPress={() => select(s)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="location-outline" size={14} color={COLORS.accent} style={{ marginTop: 1 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.suggestionCity}>{s.city}</Text>
+                <Text style={styles.suggestionSub} numberOfLines={1}>
+                  {[s.region, s.country].filter(Boolean).join(', ')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function ContactFormScreen({ contact, fields, onSave, onDelete, onCancel, t }) {
   const [form, setForm] = useState(contact || {});
@@ -129,6 +216,17 @@ export default function ContactFormScreen({ contact, fields, onSave, onDelete, o
           placeholderTextColor={COLORS.grayLight}
           multiline
           textAlignVertical="top"
+        />
+      );
+    }
+
+    if (field.id === 'city') {
+      return (
+        <CityInput
+          key={field.id}
+          value={value}
+          onChange={(v) => handleChange(field.id, v)}
+          placeholder={`${label}...`}
         />
       );
     }
@@ -358,6 +456,26 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: COLORS.danger, borderRadius: 12, paddingVertical: 12, marginTop: 12,
   },
   deleteBtnText: { color: COLORS.danger, fontSize: 14, fontWeight: '600' },
+  suggestionBox: {
+    backgroundColor: COLORS.card,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    marginTop: -12,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  suggestionCity: { fontSize: 14, fontWeight: '600', color: COLORS.dark },
+  suggestionSub: { fontSize: 12, color: COLORS.gray, marginTop: 1 },
   // Modal
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
