@@ -28,7 +28,7 @@ A personal networking app for Android. Keep track of the people you meet, never 
 
 If you just want to try the app without building it yourself, download the latest APK here:
 
-➡️ **[Download Birthact APK](https://expo.dev/accounts/raphaeldelamaire/projects/birthact/builds/503d9206-dd28-41cb-bbf7-44adf638d314)**
+➡️ **[Download Birthact APK](https://expo.dev/accounts/raphaeldelamaire/projects/birthact/builds/4425d50e-7db7-40b9-af5a-30c2eebcd6d6)**
 
 1. Open the link **on your Android phone** and tap the download button
 2. Tap the downloaded `.apk` file to install
