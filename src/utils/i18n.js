@@ -64,6 +64,14 @@ export const TRANSLATIONS = {
     typeDate: 'Date',
     typeUrl: 'URL / Link',
     typeMultiline: 'Long text',
+    typeLocation: 'Location',
+    typeTags: 'Tags',
+    tagsField: 'Circle',
+    tagFriends: 'Friends',
+    tagFamily: 'Family',
+    tagStudies: 'Studies',
+    tagWork: 'Work',
+    tagOther: 'Other',
 
     lastName: 'Last name',
     firstName: 'First name',
@@ -102,6 +110,7 @@ export const TRANSLATIONS = {
     appearance: 'Appearance',
     darkMode: 'Dark mode',
     lightMode: 'Light mode',
+    systemMode: 'System',
 
     map: 'Map',
     mapTitle: 'World map',
@@ -109,6 +118,10 @@ export const TRANSLATIONS = {
     mapEmptySub: 'Add an address to your contacts to see them on the map',
     mapLoading: 'Loading map...',
     mapGeocoding: 'Locating addresses...',
+    geocodingFailed: 'Some addresses could not be located',
+    viewOnMap: 'View on map',
+    pickerSearch: 'Search a place...',
+    geoNotPinned: 'Approximate location on map',
   },
 
   fr: {
@@ -176,6 +189,14 @@ export const TRANSLATIONS = {
     typeDate: 'Date',
     typeUrl: 'URL / Lien',
     typeMultiline: 'Texte long',
+    typeLocation: 'Localisation',
+    typeTags: 'Étiquettes',
+    tagsField: 'Cercle',
+    tagFriends: 'Amis',
+    tagFamily: 'Famille',
+    tagStudies: 'Études',
+    tagWork: 'Travail',
+    tagOther: 'Autre',
 
     lastName: 'Nom',
     firstName: 'Prénom',
@@ -214,6 +235,7 @@ export const TRANSLATIONS = {
     appearance: 'Apparence',
     darkMode: 'Mode sombre',
     lightMode: 'Mode clair',
+    systemMode: 'Système',
 
     map: 'Carte',
     mapTitle: 'Carte du monde',
@@ -221,6 +243,10 @@ export const TRANSLATIONS = {
     mapEmptySub: 'Ajoutez une adresse à vos contacts pour les voir sur la carte',
     mapLoading: 'Chargement...',
     mapGeocoding: 'Localisation des adresses...',
+    geocodingFailed: 'Certaines adresses n\'ont pas pu être localisées',
+    viewOnMap: 'Voir sur la carte',
+    pickerSearch: 'Rechercher un lieu...',
+    geoNotPinned: 'Position approximative sur la carte',
   },
 
   es: {
@@ -288,6 +314,14 @@ export const TRANSLATIONS = {
     typeDate: 'Fecha',
     typeUrl: 'URL / Enlace',
     typeMultiline: 'Texto largo',
+    typeLocation: 'Ubicación',
+    typeTags: 'Etiquetas',
+    tagsField: 'Círculo',
+    tagFriends: 'Amigos',
+    tagFamily: 'Familia',
+    tagStudies: 'Estudios',
+    tagWork: 'Trabajo',
+    tagOther: 'Otro',
 
     lastName: 'Apellido',
     firstName: 'Nombre',
@@ -326,6 +360,7 @@ export const TRANSLATIONS = {
     appearance: 'Apariencia',
     darkMode: 'Modo oscuro',
     lightMode: 'Modo claro',
+    systemMode: 'Sistema',
 
     map: 'Mapa',
     mapTitle: 'Mapa del mundo',
@@ -333,6 +368,10 @@ export const TRANSLATIONS = {
     mapEmptySub: 'Añade una dirección a tus contactos para verlos en el mapa',
     mapLoading: 'Cargando mapa...',
     mapGeocoding: 'Localizando direcciones...',
+    geocodingFailed: 'Algunas direcciones no pudieron localizarse',
+    viewOnMap: 'Ver en el mapa',
+    pickerSearch: 'Buscar un lugar...',
+    geoNotPinned: 'Ubicación aproximada en el mapa',
   },
 
   de: {
@@ -400,6 +439,14 @@ export const TRANSLATIONS = {
     typeDate: 'Datum',
     typeUrl: 'URL / Link',
     typeMultiline: 'Langer Text',
+    typeLocation: 'Standort',
+    typeTags: 'Etiketten',
+    tagsField: 'Kreis',
+    tagFriends: 'Freunde',
+    tagFamily: 'Familie',
+    tagStudies: 'Studium',
+    tagWork: 'Arbeit',
+    tagOther: 'Sonstiges',
 
     lastName: 'Nachname',
     firstName: 'Vorname',
@@ -438,6 +485,7 @@ export const TRANSLATIONS = {
     appearance: 'Erscheinungsbild',
     darkMode: 'Dunkler Modus',
     lightMode: 'Heller Modus',
+    systemMode: 'System',
 
     map: 'Karte',
     mapTitle: 'Weltkarte',
@@ -445,6 +493,10 @@ export const TRANSLATIONS = {
     mapEmptySub: 'Fügen Sie eine Adresse zu Ihren Kontakten hinzu',
     mapLoading: 'Karte wird geladen...',
     mapGeocoding: 'Adressen werden gesucht...',
+    geocodingFailed: 'Einige Adressen konnten nicht gefunden werden',
+    viewOnMap: 'Auf Karte anzeigen',
+    pickerSearch: 'Ort suchen...',
+    geoNotPinned: 'Ungefähre Position auf der Karte',
   },
 };
 
@@ -460,6 +512,7 @@ export function getFieldLabel(fieldId, t) {
     company: t.company,
     email: t.emailField,
     notes: t.notes,
+    tags: t.tagsField,
   };
   return map[fieldId] || null;
 }
@@ -472,6 +525,8 @@ export function getTypeLabel(typeValue, t) {
     date: t.typeDate,
     url: t.typeUrl,
     multiline: t.typeMultiline,
+    location: t.typeLocation,
+    tags: t.typeTags,
   };
   return map[typeValue] || typeValue;
 }

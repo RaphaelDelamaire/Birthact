@@ -193,15 +193,15 @@ export default function SettingsScreen({
         {/* Appearance */}
         <Text style={[styles.sectionTitle, { marginTop: 24 }]}>{t.appearance}</Text>
         <TouchableOpacity
-          style={[styles.option, theme !== 'dark' && styles.optionActive]}
+          style={[styles.option, theme === 'light' && styles.optionActive]}
           onPress={() => onChangeTheme('light')}
           activeOpacity={0.7}
         >
-          <Ionicons name="sunny-outline" size={24} color={theme !== 'dark' ? C.accent : C.gray} />
-          <Text style={[styles.optionText, theme !== 'dark' && styles.optionTextActive]}>
+          <Ionicons name="sunny-outline" size={24} color={theme === 'light' ? C.accent : C.gray} />
+          <Text style={[styles.optionText, theme === 'light' && styles.optionTextActive]}>
             {t.lightMode}
           </Text>
-          {theme !== 'dark' && <Ionicons name="checkmark-circle" size={22} color={C.accent} />}
+          {theme === 'light' && <Ionicons name="checkmark-circle" size={22} color={C.accent} />}
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.option, theme === 'dark' && styles.optionActive]}
@@ -213,6 +213,17 @@ export default function SettingsScreen({
             {t.darkMode}
           </Text>
           {theme === 'dark' && <Ionicons name="checkmark-circle" size={22} color={C.accent} />}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.option, theme === 'system' && styles.optionActive]}
+          onPress={() => onChangeTheme('system')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="phone-portrait-outline" size={24} color={theme === 'system' ? C.accent : C.gray} />
+          <Text style={[styles.optionText, theme === 'system' && styles.optionTextActive]}>
+            {t.systemMode}
+          </Text>
+          {theme === 'system' && <Ionicons name="checkmark-circle" size={22} color={C.accent} />}
         </TouchableOpacity>
 
         {/* Phone default country */}

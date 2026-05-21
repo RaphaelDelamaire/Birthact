@@ -31,6 +31,7 @@ const makeStyles = (COLORS) => StyleSheet.create({
   fieldType: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
   removeBtn: { padding: 6 },
   lockBadge: { padding: 6 },
+  reorderBtns: { flexDirection: 'column', gap: 2, marginRight: 4 },
   label: {
     fontSize: 12, fontWeight: '600', color: COLORS.gray,
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6,
@@ -50,7 +51,7 @@ const makeStyles = (COLORS) => StyleSheet.create({
   typeChipTextActive: { color: COLORS.accent, fontWeight: '600' },
   addBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: COLORS.dark, borderRadius: 12, paddingVertical: 14,
+    backgroundColor: COLORS.accent, borderRadius: 12, paddingVertical: 14,
   },
   addBtnText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
   saveBtn: {
@@ -67,14 +68,25 @@ export default function FieldManagerScreen({ fields, onSave, onCancel, colors, t
   const [newLabel, setNewLabel] = useState('');
   const [newType, setNewType] = useState('text');
 
+  const FIXED_IDS = ['firstName', 'lastName', 'tags'];
+
   const FIELD_TYPES = [
     { value: 'text', label: t.typeText },
     { value: 'phone', label: t.typePhone },
-    { value: 'email', label: t.typeEmail },
     { value: 'date', label: t.typeDate },
     { value: 'url', label: t.typeUrl },
     { value: 'multiline', label: t.typeMultiline },
+    { value: 'location', label: t.typeLocation },
   ];
+
+  const moveField = (index, dir) => {
+    const newFields = [...localFields];
+    const target = index + dir;
+    if (target < 0 || target >= newFields.length) return;
+    if (FIXED_IDS.includes(newFields[target].id)) return;
+    [newFields[index], newFields[target]] = [newFields[target], newFields[index]];
+    setLocalFields(newFields);
+  };
 
   const addField = () => {
     if (!newLabel.trim()) {
@@ -112,8 +124,18 @@ export default function FieldManagerScreen({ fields, onSave, onCancel, colors, t
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>{t.currentFields}</Text>
-        {localFields.map((f) => (
+        {localFields.map((f, index) => (
           <View key={f.id} style={styles.fieldRow}>
+            {!FIXED_IDS.includes(f.id) && (
+              <View style={styles.reorderBtns}>
+                <TouchableOpacity onPress={() => moveField(index, -1)}>
+                  <Ionicons name="chevron-up" size={16} color={C.gray} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => moveField(index, 1)}>
+                  <Ionicons name="chevron-down" size={16} color={C.gray} />
+                </TouchableOpacity>
+              </View>
+            )}
             <View style={styles.fieldInfo}>
               <Text style={styles.fieldLabel}>{resolveLabel(f)}</Text>
               <Text style={styles.fieldType}>{getTypeLabel(f.type, t)}</Text>

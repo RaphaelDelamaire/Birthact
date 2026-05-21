@@ -11,6 +11,7 @@ import {
   Modal,
   FlatList,
   Keyboard,
+  BackHandler,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -21,9 +22,100 @@ import { COUNTRIES, getCountryByCode } from '../utils/countries';
 import { loadDefaultCountry } from '../utils/storage';
 import { WebView } from 'react-native-webview';
 
-const MAP_PICKER_HTML = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script><style>body{margin:0;padding:0}#map{width:100%;height:100vh}#hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);color:#fff;padding:6px 16px;border-radius:20px;font-size:13px;z-index:1000;pointer-events:none;white-space:nowrap}</style></head><body><div id="map"></div><div id="hint">Appuyez pour sélectionner</div><script>var map=L.map('map').setView([20,10],2);L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'',maxZoom:19,subdomains:'abcd'}).addTo(map);var pin=null;map.on('click',function(e){if(pin)map.removeLayer(pin);pin=L.marker(e.latlng).addTo(map);if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(e.latlng.lat+','+e.latlng.lng);document.getElementById('hint').style.display='none';});<\/script></body></html>`;
+function buildPickerHTML(existingLat, existingLon, isDark) {
+  const initJS = (existingLat && existingLon)
+    ? `showExisting(${existingLat},${existingLon});`
+    : '';
+  const tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const tileFilter = isDark
+    ? '.leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(0.82) saturate(1.6)}'
+    : '.leaflet-tile-pane{filter:saturate(1.5) brightness(0.92) contrast(1.05)}';
+  const bg = isDark ? '#1A1A2E' : '#fff';
+  const textCol = isDark ? '#F0F0F8' : '#333';
+  const borderCol = isDark ? '#2D2D42' : '#ddd';
+  const cancelBg = isDark ? '#2D2D42' : '#eee';
 
-function CityInput({ value, onChange, placeholder, styles, colors, pickerTitle }) {
+  return `<!DOCTYPE html><html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+<style>
+body{margin:0;padding:0}
+#map{width:100%;height:100vh}
+${tileFilter}
+#hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);color:#fff;padding:6px 16px;border-radius:20px;font-size:13px;z-index:1000;pointer-events:none;white-space:nowrap}
+#panel{position:absolute;bottom:0;left:0;right:0;z-index:1000;background:${bg};padding:12px 16px;border-top:1px solid ${borderCol};display:none;box-shadow:0 -2px 10px rgba(0,0,0,0.15)}
+#addr{font-size:13px;color:${textCol};margin-bottom:10px;line-height:1.4}
+#btns{display:flex;gap:8px}
+#btnOk{flex:1;background:#E8572A;color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:600}
+#btnNo{flex:1;background:${cancelBg};color:${textCol};border:none;border-radius:8px;padding:10px;font-size:14px}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="hint">Appuyez pour sélectionner</div>
+<div id="panel">
+  <div id="addr"></div>
+  <div id="btns">
+    <button id="btnNo" onclick="cancelPick()">Annuler</button>
+    <button id="btnOk" onclick="doPick()">Confirmer</button>
+  </div>
+</div>
+<script>
+var map=L.map('map',{zoomControl:false,attributionControl:false}).setView([20,10],2);
+L.tileLayer('${tileUrl}',{attribution:'',maxZoom:19,subdomains:'abcd'}).addTo(map);
+var pin=null,pending=null,existPin=null;
+function showExisting(lat,lon){
+  if(existPin)map.removeLayer(existPin);
+  existPin=L.marker([lat,lon],{
+    icon:L.divIcon({
+      html:'<div style="width:30px;height:30px;border-radius:50%;background:rgba(120,120,120,0.75);border:2px dashed #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+      className:'',iconSize:[30,30],iconAnchor:[15,15]
+    }),opacity:0.8,zIndexOffset:-100
+  }).addTo(map);
+  existPin.bindPopup('Adresse actuelle');
+  map.setView([lat,lon],13);
+}
+map.on('click',function(e){
+  if(pin)map.removeLayer(pin);
+  pin=L.marker(e.latlng).addTo(map);
+  pending=e.latlng.lat+','+e.latlng.lng;
+  document.getElementById('hint').style.display='none';
+  document.getElementById('addr').textContent='Chargement...';
+  document.getElementById('panel').style.display='block';
+  fetch('https://nominatim.openstreetmap.org/reverse?lat='+e.latlng.lat+'&lon='+e.latlng.lng+'&format=json&addressdetails=1',{headers:{'User-Agent':'Birthact/1.0'}})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.address){
+        var a=d.address,parts=[];
+        if(a.house_number||a.road)parts.push((a.house_number?a.house_number+' ':'')+( a.road||''));
+        var city=a.city||a.town||a.village||a.municipality||'';
+        if(city)parts.push(city);
+        document.getElementById('addr').textContent=parts.join(', ')||d.display_name.split(',').slice(0,3).join(',');
+      } else if(d.display_name){
+        document.getElementById('addr').textContent=d.display_name.split(',').slice(0,4).join(',');
+      }
+    })
+    .catch(function(){document.getElementById('addr').textContent=pending;});
+});
+function doPick(){
+  if(pending&&window.ReactNativeWebView)window.ReactNativeWebView.postMessage(pending);
+  document.getElementById('panel').style.display='none';
+}
+function cancelPick(){
+  if(pin){map.removeLayer(pin);pin=null;}
+  pending=null;
+  document.getElementById('panel').style.display='none';
+  document.getElementById('hint').style.display='block';
+}
+${initJS}
+<\/script>
+</body>
+</html>`;
+}
+
+function CityInput({ value, onChange, onGeoCoords, initialCoords, placeholder, styles, colors, pickerTitle, isDark }) {
   const C = colors || COLORS;
   const [query, setQuery] = useState(value || '');
   const [suggestions, setSuggestions] = useState([]);
@@ -56,6 +148,7 @@ function CityInput({ value, onChange, placeholder, styles, colors, pickerTitle }
   const handleChange = (text) => {
     setQuery(text);
     onChange(text);
+    if (onGeoCoords) onGeoCoords(null, null);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => search(text), 400);
   };
@@ -63,6 +156,7 @@ function CityInput({ value, onChange, placeholder, styles, colors, pickerTitle }
   const select = (s) => {
     setQuery(s.label);
     onChange(s.label);
+    if (onGeoCoords) onGeoCoords(null, null);
     setSuggestions([]);
     Keyboard.dismiss();
   };
@@ -71,14 +165,22 @@ function CityInput({ value, onChange, placeholder, styles, colors, pickerTitle }
     setPickerVisible(false);
     try {
       const [lat, lon] = latlon.split(',');
-      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
       const res = await fetch(url, { headers: { 'User-Agent': 'Birthact/1.0' } });
       const data = await res.json();
-      if (data.display_name) {
-        const parts = data.display_name.split(', ');
-        const addr = parts.slice(0, 2).join(', ');
-        setQuery(addr);
-        onChange(addr);
+      if (data.address) {
+        const a = data.address;
+        const streetParts = [];
+        if (a.house_number) streetParts.push(a.house_number);
+        if (a.road || a.pedestrian || a.path) streetParts.push(a.road || a.pedestrian || a.path);
+        const city = a.city || a.town || a.village || a.municipality || a.county || '';
+        const addrParts = [];
+        if (streetParts.length) addrParts.push(streetParts.join(' '));
+        if (city) addrParts.push(city);
+        const fullAddr = addrParts.join(', ') || data.display_name.split(', ').slice(0, 3).join(', ');
+        setQuery(fullAddr);
+        onChange(fullAddr);
+        if (onGeoCoords) onGeoCoords(parseFloat(lat), parseFloat(lon));
         setSuggestions([]);
       }
     } catch {}
@@ -126,7 +228,11 @@ function CityInput({ value, onChange, placeholder, styles, colors, pickerTitle }
             </TouchableOpacity>
           </View>
           <WebView
-            source={{ html: MAP_PICKER_HTML }}
+            source={{ html: buildPickerHTML(
+              initialCoords ? initialCoords.lat : null,
+              initialCoords ? initialCoords.lon : null,
+              isDark
+            ) }}
             style={{ flex: 1 }}
             javaScriptEnabled
             onMessage={(e) => handleMapPick(e.nativeEvent.data)}
@@ -239,6 +345,14 @@ const makeStyles = (COLORS) => StyleSheet.create({
   countryRowFlag: { fontSize: 22 },
   countryRowName: { flex: 1, fontSize: 15, color: COLORS.dark },
   countryRowDial: { fontSize: 13, color: COLORS.gray },
+  tagChip: {
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
+    backgroundColor: COLORS.background, borderWidth: 1, borderColor: COLORS.border,
+  },
+  tagChipActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
+  tagChipText: { fontSize: 13, fontWeight: '500', color: COLORS.gray },
+  tagChipTextActive: { color: COLORS.white, fontWeight: '600' },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   cityInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   mapPickBtn: {
     backgroundColor: COLORS.card, borderRadius: 10, borderWidth: 1.5,
@@ -252,14 +366,17 @@ const makeStyles = (COLORS) => StyleSheet.create({
   },
 });
 
-export default function ContactFormScreen({ contact, fields, onSave, onDelete, onCancel, colors, t }) {
+export default function ContactFormScreen({ contact, fields, contacts, onSave, onDelete, onCancel, colors, t }) {
   const C = colors || COLORS;
+  const isDark = C.background === '#0F0F1A';
   const styles = makeStyles(C);
   const [form, setForm] = useState(contact || {});
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
   const isEditing = !!contact;
+
+  const handleSaveRef = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -304,7 +421,6 @@ export default function ContactFormScreen({ contact, fields, onSave, onDelete, o
       Alert.alert(t.fieldRequired, t.fieldRequiredMsg);
       return;
     }
-    // Strip internal display-only keys before saving
     const clean = Object.fromEntries(
       Object.entries(form).filter(([k]) => !k.startsWith('_'))
     );
@@ -313,6 +429,17 @@ export default function ContactFormScreen({ contact, fields, onSave, onDelete, o
       : { ...clean, id: generateId(), createdAt: new Date().toISOString() };
     onSave(data);
   };
+
+  handleSaveRef.current = handleSave;
+
+  useEffect(() => {
+    if (!isEditing) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleSaveRef.current();
+      return true;
+    });
+    return () => sub.remove();
+  }, [isEditing]);
 
   const handleDelete = () => {
     const name = `${form.firstName || ''} ${form.lastName || ''}`.trim();
@@ -368,17 +495,59 @@ export default function ContactFormScreen({ contact, fields, onSave, onDelete, o
       );
     }
 
-    if (field.id === 'city') {
+    if (field.id === 'city' || field.type === 'location') {
+      const isMainCity = field.id === 'city';
       return (
         <CityInput
           key={field.id}
           value={value}
           onChange={(v) => handleChange(field.id, v)}
+          initialCoords={isMainCity && form.geoLat && form.geoLon ? { lat: form.geoLat, lon: form.geoLon } : null}
+          onGeoCoords={isMainCity ? (lat, lon) => {
+            if (lat !== null && lon !== null) {
+              setForm((f) => ({ ...f, geoLat: lat, geoLon: lon }));
+            } else {
+              setForm((f) => { const n = { ...f }; delete n.geoLat; delete n.geoLon; return n; });
+            }
+          } : undefined}
           placeholder={`${label}...`}
           styles={styles}
           colors={C}
           pickerTitle={t.mapTitle}
+          isDark={isDark}
         />
+      );
+    }
+
+    if (field.type === 'tags') {
+      const tagValue = Array.isArray(form[field.id]) ? form[field.id] : [];
+      const TAG_OPTIONS = [
+        { value: 'friends', label: t.tagFriends },
+        { value: 'family', label: t.tagFamily },
+        { value: 'studies', label: t.tagStudies },
+        { value: 'work', label: t.tagWork },
+        { value: 'other', label: t.tagOther },
+      ];
+      return (
+        <View key={field.id} style={styles.tagsWrap}>
+          {TAG_OPTIONS.map((opt) => {
+            const active = tagValue.includes(opt.value);
+            return (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.tagChip, active && styles.tagChipActive]}
+                onPress={() => {
+                  handleChange(field.id, active ? [] : [opt.value]);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.tagChipText, active && styles.tagChipTextActive]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       );
     }
 
@@ -453,7 +622,7 @@ export default function ContactFormScreen({ contact, fields, onSave, onDelete, o
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onCancel} style={styles.backBtn}>
+        <TouchableOpacity onPress={isEditing ? handleSave : onCancel} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={C.dark} />
         </TouchableOpacity>
         <Text style={styles.title}>{isEditing ? t.editContact : t.newContact}</Text>
@@ -487,10 +656,12 @@ export default function ContactFormScreen({ contact, fields, onSave, onDelete, o
           </View>
         ))}
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.8}>
-          <Ionicons name="checkmark" size={20} color={C.white} />
-          <Text style={styles.saveBtnText}>{isEditing ? t.save : t.addContact}</Text>
-        </TouchableOpacity>
+        {!isEditing && (
+          <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.8}>
+            <Ionicons name="checkmark" size={20} color={C.white} />
+            <Text style={styles.saveBtnText}>{t.addContact}</Text>
+          </TouchableOpacity>
+        )}
 
         {isEditing && (
           <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} activeOpacity={0.7}>

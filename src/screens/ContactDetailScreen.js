@@ -51,9 +51,16 @@ const makeStyles = (COLORS) => StyleSheet.create({
     textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4,
   },
   detailValue: { fontSize: 15, color: COLORS.dark },
+  circleBadge: {
+    paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20,
+    backgroundColor: COLORS.accentLight, marginTop: 8, alignSelf: 'center',
+  },
+  circleBadgeText: { fontSize: 12, color: COLORS.accent, fontWeight: '600' },
+  detailValueLink: { fontSize: 15, color: COLORS.accent, textDecorationLine: 'underline' },
+  geoNote: { fontSize: 11, color: COLORS.grayLight, marginTop: 4, fontStyle: 'italic' },
 });
 
-export default function ContactDetailScreen({ contact, fields, onEdit, onBack, colors, t }) {
+export default function ContactDetailScreen({ contact, fields, onEdit, onBack, onViewOnMap, colors, t }) {
   const C = colors || COLORS;
   const styles = makeStyles(C);
   const isToday = isBirthdayToday(contact.birthday);
@@ -63,7 +70,6 @@ export default function ContactDetailScreen({ contact, fields, onEdit, onBack, c
   const cleanPhone = contact.phone ? contact.phone.replace(/\s/g, '') : null;
   const handleCall = () => { if (cleanPhone) Linking.openURL(`tel:${cleanPhone}`); };
   const handleSMS = () => { if (cleanPhone) Linking.openURL(`sms:${cleanPhone}`); };
-  const handleEmail = () => { if (contact.email) Linking.openURL(`mailto:${contact.email}`); };
 
   const resolveLabel = (field) => getFieldLabel(field.id, t) || field.label;
 
@@ -96,6 +102,15 @@ export default function ContactDetailScreen({ contact, fields, onEdit, onBack, c
               {contact.job}{contact.company ? ` · ${contact.company}` : ''}
             </Text>
           )}
+          {(() => {
+            const circleTags = Array.isArray(contact.tags) ? contact.tags : [];
+            const TAG_LABELS = { friends: t.tagFriends, family: t.tagFamily, studies: t.tagStudies, work: t.tagWork, other: t.tagOther };
+            return circleTags.length > 0 ? (
+              <View style={styles.circleBadge}>
+                <Text style={styles.circleBadgeText}>{TAG_LABELS[circleTags[0]] || circleTags[0]}</Text>
+              </View>
+            ) : null;
+          })()}
           {isToday && (
             <View style={styles.birthdayBadge}>
               <Ionicons name="gift" size={14} color="#1A1A2E" />
@@ -106,7 +121,7 @@ export default function ContactDetailScreen({ contact, fields, onEdit, onBack, c
           )}
         </View>
 
-        {(contact.phone || contact.email) && (
+        {(!!contact.phone || (!!(contact.city || contact.geoLat) && !!onViewOnMap)) && (
           <View style={styles.actions}>
             {!!contact.phone && (
               <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
@@ -120,10 +135,10 @@ export default function ContactDetailScreen({ contact, fields, onEdit, onBack, c
                 <Text style={styles.actionLabel}>{t.sms}</Text>
               </TouchableOpacity>
             )}
-            {!!contact.email && (
-              <TouchableOpacity style={styles.actionBtn} onPress={handleEmail}>
-                <Ionicons name="mail" size={20} color={C.accent} />
-                <Text style={styles.actionLabel}>{t.email}</Text>
+            {!!(contact.city || contact.geoLat) && !!onViewOnMap && (
+              <TouchableOpacity style={styles.actionBtn} onPress={onViewOnMap}>
+                <Ionicons name="map-outline" size={20} color={C.accent} />
+                <Text style={styles.actionLabel}>{t.viewOnMap}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -133,7 +148,17 @@ export default function ContactDetailScreen({ contact, fields, onEdit, onBack, c
           {fields.map((field) => {
             const val = contact[field.id];
             if (!val) return null;
-            if (field.id === 'firstName' || field.id === 'lastName') return null;
+            if (field.id === 'firstName' || field.id === 'lastName' || field.id === 'tags') return null;
+
+            if (field.type === 'url') {
+              const url = typeof val === 'string' && val.startsWith('http') ? val : `https://${val}`;
+              return (
+                <TouchableOpacity key={field.id} style={styles.detailRow} onPress={() => Linking.openURL(url)} activeOpacity={0.7}>
+                  <Text style={styles.detailLabel}>{resolveLabel(field)}</Text>
+                  <Text style={styles.detailValueLink} numberOfLines={1}>{val}</Text>
+                </TouchableOpacity>
+              );
+            }
 
             let display = val;
             if (field.id === 'birthday') {
@@ -143,7 +168,10 @@ export default function ContactDetailScreen({ contact, fields, onEdit, onBack, c
             return (
               <View key={field.id} style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{resolveLabel(field)}</Text>
-                <Text style={styles.detailValue}>{display}</Text>
+                <Text style={styles.detailValue} selectable>{display}</Text>
+                {field.id === 'city' && !contact.geoLat && (
+                  <Text style={styles.geoNote}>{t.geoNotPinned}</Text>
+                )}
               </View>
             );
           })}

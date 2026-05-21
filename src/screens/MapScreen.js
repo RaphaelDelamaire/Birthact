@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { COLORS, STORAGE_KEYS } from '../utils/constants';
+import { isBirthdayToday } from '../utils/helpers';
 
 async function geocodeCity(city) {
   try {
@@ -21,24 +22,24 @@ function esc(str) {
 }
 
 function buildMapHTML(markers, isDark) {
-  const tileUrl = isDark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  const tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const tileFilter = isDark
+    ? '.leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(0.82) saturate(1.6)}'
+    : '.leaflet-tile-pane{filter:saturate(1.5) brightness(0.92) contrast(1.05)}';
   const markerLines = markers.map((m) => {
     const initials = ((m.firstName[0] || '') + (m.lastName[0] || '')).toUpperCase() || '?';
     const fullName = esc(`${m.firstName} ${m.lastName}`.trim());
     const city = esc(m.city);
-    // Photo: base64 data URI has no single quotes or parentheses, safe in css url()
+    const bdClass = m.isBirthday ? ' pin-birthday' : '';
     const pinHTML = m.photo
-      ? `<div class="pin pin-photo" style="background-image:url(${m.photo.replace(/[\r\n\t]/g, '')})"></div>`
-      : `<div class="pin">${initials}</div>`;
-    return `cluster.addLayer(
-      L.marker([${m.lat},${m.lon}],{icon:L.divIcon({
-        html:'${pinHTML}',
-        className:'',iconSize:[38,38],iconAnchor:[19,38],popupAnchor:[0,-40]
-      })}).bindPopup('<b>${fullName}</b><br><span style="color:#888;font-size:12px">${city}</span><br><button data-id="${m.id}" onclick="window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(\\'openContact:\\'+this.getAttribute(\\'data-id\\'))" style="margin-top:6px;background:#E8572A;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">→</button>')
-    )`;
-  }).join(';\n');
+      ? `<div class="pin pin-photo${bdClass}" style="background-image:url(${m.photo.replace(/[\r\n\t]/g, '')})"></div>`
+      : `<div class="pin${bdClass}">${initials}</div>`;
+    return `markersById['${m.id}']=L.marker([${m.lat},${m.lon}],{
+      icon:L.divIcon({html:'${pinHTML}',className:'',iconSize:[38,38],iconAnchor:[19,38],popupAnchor:[0,-40]}),
+      hasBirthday:${m.isBirthday}
+    }).bindPopup('<div onclick="if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(\\'openContact:${m.id}\\')" style="cursor:pointer;min-width:100px;padding:2px 0"><b>${fullName}</b><br><span style="color:#888;font-size:12px">${city}</span></div>');
+    cluster.addLayer(markersById['${m.id}']);`;
+  }).join('\n');
 
   return `<!DOCTYPE html>
 <html>
@@ -52,6 +53,7 @@ function buildMapHTML(markers, isDark) {
 <style>
 body{margin:0;padding:0}
 #map{width:100%;height:100vh}
+${tileFilter}
 .pin{
   width:38px;height:38px;border-radius:10px;
   background:#E8572A;color:#fff;font-weight:700;font-size:13px;
@@ -62,8 +64,11 @@ body{margin:0;padding:0}
   background-color:#ccc;background-size:cover;
   background-position:center;background-repeat:no-repeat;
 }
+.pin-birthday{
+  border:3px solid #FFD700!important;
+  box-shadow:0 0 0 3px rgba(255,215,0,0.35),0 3px 8px rgba(0,0,0,0.3)!important;
+}
 .leaflet-popup-content{font-family:-apple-system,sans-serif;font-size:13px;min-width:100px}
-/* Override all default cluster bubble styles */
 .marker-cluster,.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{
   background:none!important;box-shadow:none!important;border:none!important;
 }
@@ -73,9 +78,9 @@ body{margin:0;padding:0}
 }
 #locbtn{
   position:absolute;bottom:40px;right:12px;z-index:1000;
-  background:#fff;border:none;border-radius:10px;
+  background:${isDark ? '#2A2A3E' : '#fff'};border:none;border-radius:10px;
   width:44px;height:44px;font-size:20px;cursor:pointer;
-  box-shadow:0 2px 8px rgba(0,0,0,0.25);
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
 }
 </style>
 </head>
@@ -83,26 +88,31 @@ body{margin:0;padding:0}
 <div id="map"></div>
 <button id="locbtn" onclick="reqLoc()">📍</button>
 <script>
-var map=L.map('map',{zoomControl:true}).setView([20,10],2);
-L.tileLayer('${tileUrl}',{
-  attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19,subdomains:'abcd'
-}).addTo(map);
+var map=L.map('map',{zoomControl:false,attributionControl:false}).setView([20,10],2);
+L.tileLayer('${tileUrl}',{attribution:'',maxZoom:19,subdomains:'abcd'}).addTo(map);
 
+var markersById={};
 var cluster=L.markerClusterGroup({
   maxClusterRadius:25,
   spiderfyOnMaxZoom:true,
   showCoverageOnHover:false,
   iconCreateFunction:function(c){
     var n=c.getChildCount();
+    var hasBd=c.getAllChildMarkers().some(function(m){return m.options.hasBirthday;});
     return L.divIcon({
-      html:'<div class="pin">'+n+'</div>',
+      html:'<div class="pin'+(hasBd?' pin-birthday':'')+'">'+n+'</div>',
       className:'',iconSize:[38,38],iconAnchor:[19,38]
     });
   }
 });
-${markerLines};
+${markerLines}
 map.addLayer(cluster);
 if(cluster.getLayers().length>0){map.fitBounds(cluster.getBounds().pad(0.3));}
+function focusMarker(id){
+  var m=markersById[id];
+  if(!m)return;
+  cluster.zoomToShowLayer(m,function(){setTimeout(function(){m.openPopup();},100);});
+}
 
 var myDot=null,myAcc=null;
 function locateAt(lat,lon,acc){
@@ -120,11 +130,12 @@ function reqLoc(){
 </html>`;
 }
 
-export default function MapScreen({ contacts, onBack, onOpenContact, colors, t }) {
+export default function MapScreen({ contacts, onBack, onOpenContact, focusContactId, colors, t }) {
   const C = colors || COLORS;
   const isDark = C.background === '#0F0F1A';
   const [markers, setMarkers] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [geocodingFailed, setGeocodingFailed] = useState(0);
   const userCoordsRef = useRef(null);
   const webviewRef = useRef(null);
 
@@ -134,6 +145,7 @@ export default function MapScreen({ contacts, onBack, onOpenContact, colors, t }
     (async () => {
       const cityKeys = {};
       contacts.forEach((c) => {
+        if (c.geoLat && c.geoLon) return;
         if (!c.city) return;
         const key = c.city.toLowerCase().trim();
         if (!cityKeys[key]) cityKeys[key] = c.city;
@@ -158,7 +170,21 @@ export default function MapScreen({ contacts, onBack, onOpenContact, colors, t }
       } catch {}
 
       const result = [];
+      let failed = 0;
       contacts.forEach((c) => {
+        if (c.geoLat && c.geoLon) {
+          result.push({
+            lat: c.geoLat,
+            lon: c.geoLon,
+            id: c.id,
+            firstName: c.firstName || '',
+            lastName: c.lastName || '',
+            city: c.city || '',
+            photo: c.photo || null,
+            isBirthday: isBirthdayToday(c.birthday),
+          });
+          return;
+        }
         if (!c.city) return;
         const coords = cache[c.city.toLowerCase().trim()];
         if (coords) {
@@ -170,12 +196,16 @@ export default function MapScreen({ contacts, onBack, onOpenContact, colors, t }
             lastName: c.lastName || '',
             city: c.city,
             photo: c.photo || null,
+            isBirthday: isBirthdayToday(c.birthday),
           });
+        } else {
+          failed++;
         }
       });
 
       if (!cancelled) {
         setMarkers(result);
+        setGeocodingFailed(failed);
         setLoading(false);
       }
     })();
@@ -204,9 +234,10 @@ export default function MapScreen({ contacts, onBack, onOpenContact, colors, t }
   const injectLocation = () => {
     const c = userCoordsRef.current;
     if (c && webviewRef.current) {
-      webviewRef.current.injectJavaScript(
-        `locateAt(${c.lat},${c.lon},${c.acc});true;`
-      );
+      webviewRef.current.injectJavaScript(`locateAt(${c.lat},${c.lon},${c.acc});true;`);
+    }
+    if (focusContactId && webviewRef.current) {
+      webviewRef.current.injectJavaScript(`setTimeout(function(){focusMarker('${focusContactId}');},500);true;`);
     }
   };
 
@@ -218,7 +249,7 @@ export default function MapScreen({ contacts, onBack, onOpenContact, colors, t }
     }
   };
 
-  const noCities = contacts.every((c) => !c.city);
+  const noCities = contacts.every((c) => !c.city && !c.geoLat);
   const styles = makeStyles(C);
 
   return (

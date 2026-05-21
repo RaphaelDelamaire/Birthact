@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StatusBar, LogBox, BackHandler } from 'react-native';
+import { StatusBar, LogBox, BackHandler, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import HomeScreen from './src/screens/HomeScreen';
@@ -40,9 +40,14 @@ export default function App() {
   const [screen, setScreen] = useState('home');
   const [selectedContact, setSelectedContact] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [mapFocusContactId, setMapFocusContactId] = useState(null);
 
+  const systemColorScheme = useColorScheme();
   const t = TRANSLATIONS[language] || TRANSLATIONS.en;
-  const colors = theme === 'dark' ? DARK_COLORS : COLORS;
+  const colors =
+    theme === 'dark' ? DARK_COLORS
+    : theme === 'system' ? (systemColorScheme === 'dark' ? DARK_COLORS : COLORS)
+    : COLORS;
 
   useEffect(() => {
     (async () => {
@@ -62,7 +67,28 @@ export default function App() {
         loadedContacts = results[0] || [];
         loadedLang = results[2] || 'en';
         setContacts(loadedContacts);
-        setFields(results[1] || DEFAULT_FIELDS);
+        let loadedFields = results[1] || DEFAULT_FIELDS;
+        // Migrations
+        loadedFields = loadedFields
+          .filter((f) => f.id !== 'email')
+          .map((f) => {
+            if (f.id === 'city') return { ...f, removable: false };
+            if (f.id === 'tags') return { ...f, removable: false };
+            return f;
+          });
+        if (!loadedFields.some((f) => f.id === 'tags')) {
+          loadedFields = [...loadedFields, { id: 'tags', label: 'tags', type: 'tags', icon: 'pricetag-outline', removable: false }];
+        }
+        // Move tags after firstName
+        const tagsField = loadedFields.find((f) => f.id === 'tags');
+        const firstNameIdx = loadedFields.findIndex((f) => f.id === 'firstName');
+        const tagsIdx = loadedFields.findIndex((f) => f.id === 'tags');
+        if (tagsField && firstNameIdx > -1 && tagsIdx !== firstNameIdx + 1) {
+          loadedFields = loadedFields.filter((f) => f.id !== 'tags');
+          loadedFields.splice(loadedFields.findIndex((f) => f.id === 'firstName') + 1, 0, tagsField);
+        }
+        saveFields(loadedFields).catch(() => {});
+        setFields(loadedFields);
         setLanguage(loadedLang);
         setDefaultCountry(results[3] || 'FR');
         setTheme(results[4] || 'light');
@@ -84,7 +110,7 @@ export default function App() {
     const onBack = () => {
       if (screen === 'home') return false; // let system handle (exit app)
       if (screen === 'detail') { setScreen('home'); setSelectedContact(null); return true; }
-      if (screen === 'edit') { setScreen('detail'); return true; }
+      if (screen === 'edit') { return false; } // ContactFormScreen handles save via its own BackHandler
       if (screen === 'add') { setScreen('home'); return true; }
       if (screen === 'fields') { setScreen('settings'); return true; }
       if (screen === 'settings') { setScreen('home'); return true; }
@@ -129,6 +155,7 @@ export default function App() {
         break;
       case 'map':
         setScreen('map');
+        setMapFocusContactId(data?.focusContactId || null);
         break;
       default:
         setScreen('home');
@@ -222,6 +249,7 @@ export default function App() {
       {screen === 'add' && (
         <ContactFormScreen
           fields={fields}
+          contacts={contacts}
           onSave={handleAddContact}
           onCancel={() => navigate('home')}
           colors={colors}
@@ -233,6 +261,7 @@ export default function App() {
         <ContactFormScreen
           contact={selectedContact}
           fields={fields}
+          contacts={contacts}
           onSave={handleEditContact}
           onDelete={handleDeleteContact}
           onCancel={() => navigate('detail', selectedContact)}
@@ -247,6 +276,11 @@ export default function App() {
           fields={fields}
           onEdit={() => navigate('edit', selectedContact)}
           onBack={() => navigate('home')}
+          onViewOnMap={
+            (selectedContact.city || selectedContact.geoLat)
+              ? () => navigate('map', { focusContactId: selectedContact.id })
+              : undefined
+          }
           colors={colors}
           t={t}
         />
@@ -283,6 +317,7 @@ export default function App() {
           contacts={contacts}
           onBack={() => navigate('home')}
           onOpenContact={(id) => { const c = contacts.find((x) => x.id === id); if (c) navigate('detail', c); }}
+          focusContactId={mapFocusContactId}
           colors={colors}
           t={t}
         />
